@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Unity.exe\" -createProject \"C:/Users/trevy/git/thru-1/ThruUnity\" -quit -batchmode)",
+      "Bash(find:*)",
+      "Bash(\"/c/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Unity.exe\" -projectPath \"C:/Users/trevy/git/thru-1/ThruUnity\" -logFile \"C:/Users/trevy/git/thru-1/ThruUnity/compile_log.txt\" -quit -batchmode)",
+      "Bash(echo:*)",
+      "Bash(\"/c/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Unity.exe\" -projectPath \"C:/Users/trevy/git/thru-1/ThruUnity\" -logFile \"C:/Users/trevy/git/thru-1/ThruUnity/compile_log2.txt\" -quit -batchmode)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
