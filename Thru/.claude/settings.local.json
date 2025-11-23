@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet run)",
+      "Bash(cmd.exe /c \"cd /d C:\\Users\\trevy\\git\\thru-1\\Thru && dotnet run\")",
+      "Bash(powershell.exe -Command \"Set-Location ''C:\\Users\\trevy\\git\\thru-1\\Thru''; dotnet run\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -46,8 +46,8 @@ namespace Thru
             Encounter = setupTestEncounter(services, graphics);
             hud = new HUD(services, graphics, Player, globalState);
             grid = new DesignGrid(services, graphics);
-            string path = Path.GetFullPath("../../../");
-            eatingSoundEffect = MonoSoundManager.GetEffect(path + "Content/Audio/MunchMunch.mp3");
+            string path = AppDomain.CurrentDomain.BaseDirectory;
+            eatingSoundEffect = MonoSoundManager.GetEffect(Path.Combine(path, "Content", "Audio", "MunchMunch.mp3"));
             hud.snackButton.onClick += playMunch;
 
         }

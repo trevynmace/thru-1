@@ -321,7 +321,7 @@ namespace Thru
             if (String.IsNullOrEmpty(FilePath))
                 return null;
             Texture2D texture;
-            FilePath = Path.GetFullPath("../../../Content/") + FilePath;
+            FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", FilePath);
             FileStream titleStream = File.OpenRead(FilePath);
             texture = Texture2D.FromStream(device, titleStream);
             titleStream.Close();

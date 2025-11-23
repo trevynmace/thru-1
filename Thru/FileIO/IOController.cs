@@ -30,8 +30,8 @@ namespace Thru
         string path;
         public IOController(IServiceProvider services, string filename)
         {
-
-            path = Path.GetFullPath("../../../") + filename;
+            // Use Content directory relative to the executable
+            path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "DataLists", filename);
         }
         public void serializeToFile<T>(Dictionary<string, T> obj)
         {
