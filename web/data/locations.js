@@ -1,0 +1,105 @@
+// PCT milestones — Southern Terminus (Campo, mile 0) to Northern Terminus (Manning Park, mile 2650).
+// Miles are the real, widely-cited PCT mileages. `kind` drives gameplay (town = resupply/morale,
+// landmark = scenic morale boost, hazard = stat checks, terminus = win). `elev` in feet.
+// Seeded from the repo's pct_map waypoint geojson + canonical PCT thru-hiker landmarks.
+export const TERMINUS_NORTH_MILE = 2650;
+
+export const LOCATIONS = [
+  { id: 'campo',        name: 'Campo / Southern Terminus', mile: 0,    elev: 2915, kind: 'terminus', state: 'CA', biome: 'desert',
+    blurb: 'A dusty monument on the Mexican border. You touch the wooden post, sign the register, and turn north. 2,650 miles to Canada.' },
+  { id: 'lake-morena',  name: 'Lake Morena',     mile: 20,   elev: 3050, kind: 'town',     state: 'CA', biome: 'desert',
+    blurb: 'A campground with a tiny store. The first day-20 crew swaps blister stories.' },
+  { id: 'mount-laguna', name: 'Mount Laguna',    mile: 43,   elev: 5980, kind: 'town',     state: 'CA', biome: 'desert',
+    blurb: 'Pines at last. The outfitter here has saved more than one hiker from a bad shoe choice.' },
+  { id: 'scissors',     name: 'Scissors Crossing', mile: 77, elev: 2280, kind: 'hazard',   state: 'CA', biome: 'desert',
+    blurb: 'A baking wash under the highway. Hikers cache water here and hide from the noon sun.' },
+  { id: 'warner',       name: 'Warner Springs',  mile: 109,  elev: 3040, kind: 'town',     state: 'CA', biome: 'desert',
+    blurb: 'Eagle Rock, a community center, and the legendary bucket showers.' },
+  { id: 'paradise',     name: 'Paradise Valley Cafe', mile: 152, elev: 4960, kind: 'town', state: 'CA', biome: 'desert',
+    blurb: 'A burger the size of your face, 1.5 miles off trail. Worth every step.' },
+  { id: 'idyllwild',    name: 'Idyllwild / San Jacinto', mile: 179, elev: 5380, kind: 'town', state: 'CA', biome: 'mountain',
+    blurb: 'A mountain town with a mayor who is a dog. The climb up San Jacinto is the first real test of altitude.' },
+  { id: 'ziggy',        name: "Ziggy & The Bear", mile: 210, elev: 1360, kind: 'landmark', state: 'CA', biome: 'desert',
+    blurb: 'Trail angels at the foot of the San Gorgonio descent. Cold soda, foot soaks, kindness.' },
+  { id: 'big-bear',     name: 'Big Bear City',   mile: 266,  elev: 6760, kind: 'town',     state: 'CA', biome: 'mountain',
+    blurb: 'Hitch into town for an all-you-can-eat and a real bed. The Deep Creek hot springs wait ahead.' },
+  { id: 'deep-creek',   name: 'Deep Creek Hot Springs', mile: 308, elev: 3120, kind: 'landmark', state: 'CA', biome: 'desert',
+    blurb: 'Steaming pools beside a cold river. Clothing optional, morale mandatory.' },
+  { id: 'cajon',        name: 'Cajon Pass',      mile: 342,  elev: 3000, kind: 'town',     state: 'CA', biome: 'desert',
+    blurb: 'The McDonald’s at Cajon Pass is a PCT institution. Some hikers order a thousand calories without sitting down.' },
+  { id: 'wrightwood',   name: 'Wrightwood',      mile: 369,  elev: 5980, kind: 'town',     state: 'CA', biome: 'mountain',
+    blurb: 'A friendly ski town before the long climb over Mt. Baden-Powell.' },
+  { id: 'agua-dulce',   name: 'Agua Dulce / Hiker Heaven', mile: 454, elev: 2530, kind: 'town', state: 'CA', biome: 'desert',
+    blurb: 'The Saufleys open their yard to hikers. Laundry, a bunk, and a sense that strangers will carry you.' },
+  { id: 'hikertown',    name: 'Hikertown',       mile: 517,  elev: 3050, kind: 'landmark', state: 'CA', biome: 'desert',
+    blurb: 'A quirky roadside compound at the edge of the Mojave. Hikers wait out the heat, then night-walk the aqueduct.' },
+  { id: 'tehachapi',    name: 'Tehachapi',       mile: 566,  elev: 4150, kind: 'town',     state: 'CA', biome: 'desert',
+    blurb: 'Wind turbines turn slow on the ridgelines. The town treats hikers like royalty.' },
+  { id: 'kennedy',      name: 'Kennedy Meadows', mile: 702,  elev: 6150, kind: 'town',     state: 'CA', biome: 'mountain',
+    blurb: 'The gateway to the High Sierra. The General Store porch erupts in applause when you walk in. Pick up the bear can and ice axe.' },
+  { id: 'whitney',      name: 'Mt. Whitney Junction', mile: 767, elev: 13600, kind: 'landmark', state: 'CA', biome: 'alpine',
+    blurb: 'A side trip to the highest point in the lower 48 (14,505 ft). The sunrise from the summit rearranges something in you.' },
+  { id: 'forester',     name: 'Forester Pass',   mile: 779,  elev: 13153, kind: 'hazard',   state: 'CA', biome: 'alpine',
+    blurb: 'The highest point on the PCT itself. A notch in a wall of granite, often snowbound into June.' },
+  { id: 'kearsarge',    name: 'Kearsarge / Bishop', mile: 789, elev: 11760, kind: 'town',  state: 'CA', biome: 'alpine',
+    blurb: 'Climb over Kearsarge Pass and hitch to Bishop for the best bakery on trail.' },
+  { id: 'vvr',          name: 'Vermilion Valley Resort', mile: 878, elev: 7650, kind: 'town', state: 'CA', biome: 'alpine',
+    blurb: 'A ferry across Edison Lake to a resort that gives every hiker their first beer free.' },
+  { id: 'tuolumne',     name: 'Tuolumne Meadows', mile: 942, elev: 8600, kind: 'town',     state: 'CA', biome: 'alpine',
+    blurb: 'Yosemite’s high meadow. A post office, a grill, and domes of pale granite in every direction.' },
+  { id: 'sonora',       name: 'Sonora Pass',     mile: 1017, elev: 9620, kind: 'hazard',   state: 'CA', biome: 'alpine',
+    blurb: 'Knife-edge volcanic ridges and lingering snow. The Sierra’s grand finale.' },
+  { id: 'tahoe',        name: 'South Lake Tahoe', mile: 1090, elev: 6260, kind: 'town',    state: 'CA', biome: 'mountain',
+    blurb: 'A big lake, a big town, and the unofficial halfway-ish reset. Casinos, gear shops, and zero-day temptation.' },
+  { id: 'sierra-city',  name: 'Sierra City',     mile: 1195, elev: 4180, kind: 'town',     state: 'CA', biome: 'mountain',
+    blurb: 'The Red Moose welcomes hikers. The famous one-pound burger challenge looms.' },
+  { id: 'belden',       name: 'Belden',          mile: 1284, elev: 2310, kind: 'town',     state: 'CA', biome: 'forest',
+    blurb: 'A river canyon resort that sometimes throws a rave. A brutal climb out either way.' },
+  { id: 'midpoint',     name: 'PCT Midpoint Monument', mile: 1325, elev: 4990, kind: 'landmark', state: 'CA', biome: 'forest',
+    blurb: 'A stone monument: 1,325 miles behind, 1,325 ahead. Hikers leave a note and a quiet promise.' },
+  { id: 'burney',       name: 'Burney / Burney Falls', mile: 1419, elev: 3170, kind: 'town', state: 'CA', biome: 'forest',
+    blurb: 'A 129-foot waterfall fed by springs, roaring out of a mossy cliff. A state-park resupply.' },
+  { id: 'castle-crags', name: 'Castle Crags / Dunsmuir', mile: 1501, elev: 2130, kind: 'town', state: 'CA', biome: 'forest',
+    blurb: 'Spires of granite above the Sacramento River. Mt. Shasta floats white on the horizon for days.' },
+  { id: 'etna',         name: 'Etna',            mile: 1597, elev: 5960, kind: 'town',     state: 'CA', biome: 'forest',
+    blurb: 'A tiny town with a brewery and a hiker hostel in the city park. The Marble Mountains glow ahead.' },
+  { id: 'seiad',        name: 'Seiad Valley',    mile: 1656, elev: 1370, kind: 'town',     state: 'CA', biome: 'forest',
+    blurb: 'Home of the pancake challenge: five one-pound flapjacks. Almost nobody finishes.' },
+  { id: 'ashland',      name: 'Ashland, OR',     mile: 1718, elev: 4240, kind: 'town',     state: 'OR', biome: 'forest',
+    blurb: 'Cross into Oregon. A theatre town that loves hikers. The flat, fast “Oregon highway” begins.' },
+  { id: 'crater-lake',  name: 'Crater Lake',     mile: 1829, elev: 7100, kind: 'landmark', state: 'OR', biome: 'forest',
+    blurb: 'The bluest water you will ever see, cupped in a collapsed volcano. The Rim Alternate is a must.' },
+  { id: 'shelter-cove', name: 'Shelter Cove',    mile: 1907, elev: 4810, kind: 'town',     state: 'OR', biome: 'forest',
+    blurb: 'A lakeside resort and resupply. Mosquitoes the size of hummingbirds. Diamond Peak gleams.' },
+  { id: 'sisters',      name: 'McKenzie Pass / Sisters', mile: 1983, elev: 5280, kind: 'town', state: 'OR', biome: 'forest',
+    blurb: 'A black moonscape of lava flows beneath the Three Sisters volcanoes.' },
+  { id: 'timberline',   name: 'Timberline Lodge', mile: 2097, elev: 5960, kind: 'town',    state: 'OR', biome: 'mountain',
+    blurb: 'The famous breakfast buffet on the flank of Mt. Hood. Hikers eat until they cannot stand.' },
+  { id: 'cascade-locks',name: 'Cascade Locks / Bridge of the Gods', mile: 2147, elev: 240, kind: 'town', state: 'OR', biome: 'forest',
+    blurb: 'The lowest point on the trail. Walk the Bridge of the Gods over the Columbia into Washington. Trail Days, ice cream, the Bridge.' },
+  { id: 'trout-lake',   name: 'Trout Lake, WA',  mile: 2229, elev: 1900, kind: 'town',     state: 'WA', biome: 'forest',
+    blurb: 'Huckleberry milkshakes under Mt. Adams. Washington’s wild, wet beauty begins.' },
+  { id: 'white-pass',   name: 'White Pass',      mile: 2295, elev: 4410, kind: 'town',     state: 'WA', biome: 'mountain',
+    blurb: 'A gas-station resupply at a ski area, in the shadow of the Goat Rocks. The Knife’s Edge is coming.' },
+  { id: 'snoqualmie',   name: 'Snoqualmie Pass', mile: 2390, elev: 3030, kind: 'town',     state: 'WA', biome: 'mountain',
+    blurb: 'An interstate pass with a pancake house. The North Cascades rear up, raw and glaciated.' },
+  { id: 'stevens',      name: 'Stevens Pass / Skykomish', mile: 2464, elev: 4060, kind: 'town', state: 'WA', biome: 'mountain',
+    blurb: 'The last easy resupply before the wildest stretch. Rain moves in off the Pacific.' },
+  { id: 'stehekin',     name: 'Stehekin',        mile: 2580, elev: 1230, kind: 'town',     state: 'WA', biome: 'mountain',
+    blurb: 'A roadless village reached by shuttle, on a fjord-like lake. The bakery is a religious experience.' },
+  { id: 'manning',      name: 'Northern Terminus / Manning Park', mile: 2650, elev: 4360, kind: 'terminus', state: 'WA', biome: 'mountain',
+    blurb: 'Monument 78. The Canadian border. You touch the wooden post, and the trail you have become lets you go.' },
+];
+
+// Quick lookup of the next/previous milestone for a given mile.
+export function nextLocation(mile) {
+  return LOCATIONS.find(l => l.mile > mile) || LOCATIONS[LOCATIONS.length - 1];
+}
+export function lastPassed(mile) {
+  let last = LOCATIONS[0];
+  for (const l of LOCATIONS) { if (l.mile <= mile) last = l; else break; }
+  return last;
+}
+export function biomeAt(mile) {
+  return lastPassed(mile).biome;
+}

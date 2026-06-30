@@ -1,0 +1,31 @@
+{
+  "name": "thru-web",
+  "version": "0.1.0",
+  "description": "Thru — a modern-day Oregon Trail on the Pacific Crest Trail. Web port (Node) of the in-development Unity/MonoGame game.",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "electron": "electron .",
+    "dist": "electron-builder",
+    "pixelate": "node scripts/pixelate.js",
+    "test": "node --test"
+  },
+  "keywords": ["pct", "thru-hiking", "oregon-trail", "pixel-art", "game"],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "sharp": "^0.33.4"
+  },
+  "build": {
+    "appId": "com.thru.game",
+    "productName": "Thru",
+    "files": ["electron/**", "public/**", "data/**", "server.js"],
+    "directories": { "output": "dist" }
+  }
+}

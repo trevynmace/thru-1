@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Thru — Art &amp; Audio Asset TODO / Generation Prompts</title>
+<style>
+  :root { --bg:#15111f; --panel:#201a2e; --ink:#f3ecdf; --dim:#b7ad9a; --gold:#f0c987; --edge:#4a3f63; --good:#8fd9a8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:ui-monospace,Menlo,Consolas,monospace; line-height:1.6; }
+  header { padding:48px 6vw 28px; background:linear-gradient(#3b2b54,#c96f5a); color:#fff; }
+  header h1 { margin:0; font-size:42px; letter-spacing:.16em; color:#ffd9a0; text-shadow:0 3px 0 #6b4a2a; }
+  header p { max-width:760px; color:#ffeede; }
+  main { padding:0 6vw 80px; max-width:1100px; margin:0 auto; }
+  h2 { color:var(--gold); border-bottom:2px solid var(--edge); padding-bottom:8px; margin-top:48px; }
+  h3 { color:#e0b878; margin-bottom:6px; }
+  .meta { color:var(--dim); font-size:13px; margin:4px 0 12px; }
+  .card { background:var(--panel); border:2px solid var(--edge); border-radius:8px; padding:18px 20px; margin:16px 0; }
+  .prompt { background:#0d0a16; border:1px solid var(--edge); border-left:4px solid var(--good); border-radius:5px;
+    padding:14px 16px; white-space:pre-wrap; font-size:13.5px; color:#dfe9d8; margin-top:10px; position:relative; }
+  .tag { display:inline-block; font-size:11px; background:var(--edge); color:var(--ink); padding:2px 8px; border-radius:10px; margin-right:6px; }
+  .tag.style { background:#7a4a63; }
+  .tag.ref { background:#3a7163; }
+  ul { margin:6px 0; } li { margin:3px 0; }
+  code { background:#0d0a16; padding:1px 6px; border-radius:4px; color:var(--gold); font-size:12.5px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; } @media(max-width:720px){.grid{grid-template-columns:1fr;}}
+  .pill { color:var(--good); }
+  .note { background:#2a2030; border-left:4px solid var(--gold); padding:12px 16px; border-radius:5px; margin:14px 0; font-size:13.5px; }
+  button.copy { position:absolute; top:8px; right:8px; font-family:inherit; font-size:11px; background:var(--edge); color:var(--ink);
+    border:none; border-radius:4px; padding:4px 8px; cursor:pointer; } button.copy:hover{ background:#5a4a6e; }
+  .done { color:var(--good); } .todo { color:#ffcf6b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>THRU — ASSET TODO</h1>
+  <p>Generation prompts for every sprite, background, prop, and track the web port needs to replace its
+  procedural placeholders. The game is <b>fully playable right now</b> with code-drawn pixel art — these assets are
+  drop-in upgrades. Target visual style: <b>Superbrothers: Sword &amp; Sworcery EP</b> — tiny silhouetted pixel humans,
+  flat atmospheric color fields, limited palettes, big mood. Reference the <b>1st &amp; 3rd Steam screenshots</b> for the
+  exact look we're chasing; the others are concept art to build from.</p>
+</header>
+<main>
+
+<div class="note">
+  <b>How to use this file:</b> paste each prompt into Gemini (image) or your image model of choice. Save outputs into
+  <code>web/public/assets/</code> using the filename noted. For real photo textures, drop the source in <code>web/raw/</code>
+  and run <code>npm run pixelate -- --in raw/x.jpg --out public/assets/x.png --size 256 --quantize</code> to bake a
+  palette-mapped pixel version (see <b>§5 Texture Pixelation</b>). Keep everything to the shared palette below.
+</div>
+
+<h2>0 · Shared Palette &amp; Specs</h2>
+<div class="card">
+  <p>Every asset should pull from this muted, dusk-leaning palette (the renderer already uses it per-biome):</p>
+  <ul>
+    <li><b>Desert:</b> <code>#3b2b54 #c96f5a #ffd9a0 #b5615c #caa06a #f0c987</code> — dawn/dusk purples into terracotta &amp; gold.</li>
+    <li><b>Forest:</b> <code>#16323a #3f7e6e #1f3b3e #3a7163 #264a3a #8fd9a8</code> — deep teal-greens.</li>
+    <li><b>Mountain:</b> <code>#2a2f55 #6f86b8 #39406b #6b7aa3 #566089 #cdd9f0</code> — cool slate blues.</li>
+    <li><b>Alpine/Snow:</b> <code>#20284f #8fb4d6 #5b76a0 #92aecb #cdd9ec #ffffff</code> — pale ice &amp; granite.</li>
+  </ul>
+  <ul>
+    <li><b>Character cell size:</b> match the existing repo sheets — layered parts on a transparent grid (body, arms, hair, eyes, beard, shirt, sleeves, pants, shoes, backpack, backpack-straps, trekking poles). The repo already has many of these under <code>Thru/Content/Character Animation/</code>; regenerate only what's missing or restyle for consistency.</li>
+    <li><b>Animation:</b> 2–4 frame walk cycle minimum (idle + walk). Horizontal strip, power-of-two cell.</li>
+    <li><b>Backgrounds:</b> 256×144 native (the game's internal buffer), or any 16:9 multiple — exported nearest-neighbour. Parallax-friendly: paint sky, far ridge, mid ridge, near ridge, foreground as <b>separate transparent layers</b>.</li>
+  </ul>
+</div>
+
+<h2>1 · Character Spritesheets <span class="todo">(layered, à la repo)</span></h2>
+<p class="meta">Keep the modular layer system the Unity build already uses, so the customizer can mix &amp; match. One sheet per part, identical frame grid, transparent background.</p>
+
+<div class="grid">
+  <div class="card">
+    <h3>Base Hiker Body</h3>
+    <p class="meta">→ <code>assets/char/body-Sheet.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art character spritesheet, side-view walk cycle, 4 frames in a horizontal strip, transparent background. A slender androgynous human in the minimalist silhouette style of Superbrothers: Sword & Sworcery EP — tiny, almost featureless, expressive through posture not detail. Muted dusk palette (#e8b98c skin). No outline noise; clean limited-color shading. Just the bare body (no clothes), arms and legs articulated for walking. 1x scale, crisp nearest-neighbour pixels.</div>
+  </div>
+  <div class="card">
+    <h3>Hair / Beard / Eyes layers</h3>
+    <p class="meta">→ <code>assets/char/hair-{1..4}-Sheet.png</code>, <code>beard-Sheet.png</code>, <code>eyes-Sheet.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art overlay spritesheet aligned to a 4-frame side-view human walk cycle, transparent background. Generate ONLY the hair (variant: short tousled / long ponytail / buzzed / curly bun — one per file). Sword & Sworcery minimalism: a few pixels of flat color suggesting the shape, no strands. Earthy natural hair colors. Must register exactly over the base body sheet head position.</div>
+  </div>
+  <div class="card">
+    <h3>Shirts &amp; Sleeves</h3>
+    <p class="meta">→ <code>assets/char/shirt-{name}-Sheet.png</code> + matching <code>sleeves-{name}-Sheet.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art clothing overlay spritesheet for a 4-frame side-view hiker walk cycle, transparent background. Generate a hiking shirt layer (variants: sun hoodie, tank top, flannel, puffy jacket, rain shell, hawaiian). Flat 2–3 color shading, trail-worn look, Sword & Sworcery palette. Provide a separate matching "sleeves" sheet so sleeveless vs long-sleeve can be toggled. Align precisely to the torso of the base body.</div>
+  </div>
+  <div class="card">
+    <h3>Pants / Shorts &amp; Shoes</h3>
+    <p class="meta">→ <code>assets/char/pants-{name}-Sheet.png</code>, <code>shoes-{name}-Sheet.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art legwear overlay spritesheet, 4-frame side walk cycle, transparent bg. Generate hiking shorts / cargo pants / leggings / rolled shorts (one per file) and separately trail-runner shoes / boots / sandals. Muted earthy colors, minimal detail, must animate cleanly with the leg frames of the base body.</div>
+  </div>
+  <div class="card">
+    <h3>Backpacks (+ straps)</h3>
+    <p class="meta">→ <code>assets/char/backpack-{name}-Sheet.png</code>, <code>backpackstraps-{name}-Sheet.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art ultralight backpack overlay spritesheet for a side-view hiker, 4-frame walk cycle, transparent bg. Brands/styles as silhouettes: thru-hiker frameless pack, bear-can bulge, foam pad strapped on. Separate "straps" sheet that draws over the chest. Sword & Sworcery flat shading, dusk palette.</div>
+  </div>
+  <div class="card">
+    <h3>Trekking Poles + Arms</h3>
+    <p class="meta">→ <code>assets/char/poles-Sheet.png</code>, <code>poles-arms-Sheet.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art trekking-pole overlay spritesheet synced to a 4-frame hiker walk cycle, transparent bg. Two thin poles planting in alternating rhythm with the stride, plus a matching forearm layer so the hand grips the pole. Minimal 2-color pixels, subtle metallic glint highlight.</div>
+  </div>
+</div>
+
+<h2>2 · Biome Backgrounds <span class="todo">(parallax layers)</span></h2>
+<p class="meta">The repo already ships <code>southern_terminus.png</code>, <code>westcoast.png</code>, <code>trees.png</code>, <code>fog.png</code>, <code>Moms_Diner.png</code>. Generate the rest to cover all four biomes × day phases. Export each as separate transparent parallax layers where possible.</p>
+<div class="grid">
+  <div class="card">
+    <h3>Desert (Southern California)</h3>
+    <p class="meta">→ <code>assets/bg/desert-{dawn,noon,dusk}.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art parallax background, 256x144, Superbrothers Sword & Sworcery style. A Pacific Crest Trail desert at dusk: layered silhouette ridgelines fading into haze, a glowing low sun, chaparral and saguaro silhouettes in the foreground, a thin trail tread. Limited palette: deep purple sky (#3b2b54) into terracotta (#c96f5a) into gold (#ffd9a0). Flat color fields, dithered horizon band, no characters. Provide separate layers: sky, far ridge, mid ridge, near ridge, foreground.</div>
+  </div>
+  <div class="card">
+    <h3>Forest (Oregon / NorCal)</h3>
+    <p class="meta">→ <code>assets/bg/forest-{dawn,noon,dusk}.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art parallax background, 256x144, Sword & Sworcery style. Dense PCT conifer forest, layered fir silhouettes receding into teal fog, shafts of light, ferns in foreground. Palette deep teal-green (#16323a → #3f7e6e → #8fd9a8). Flat fields, atmospheric depth, no characters. Separate parallax layers exported.</div>
+  </div>
+  <div class="card">
+    <h3>Mountain (passes &amp; ridges)</h3>
+    <p class="meta">→ <code>assets/bg/mountain-{dawn,noon,dusk}.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art parallax background, 256x144, Sword & Sworcery style. High Sierra ridgeline: cool slate-blue mountains in receding silhouette layers, a pale sky, scattered pines and granite. Palette #2a2f55 → #6f86b8 → #cdd9f0. Calm, vast, lonely. Separate parallax layers.</div>
+  </div>
+  <div class="card">
+    <h3>Alpine / Snow (high passes, Washington)</h3>
+    <p class="meta">→ <code>assets/bg/alpine-{dawn,noon,dusk}.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art parallax background, 256x144, Sword & Sworcery style. Snowbound alpine pass: white granite, ice fields, a star-flecked indigo sky, distant glaciated peaks. Palette #20284f → #8fb4d6 → #ffffff. Crystalline, hushed. Separate parallax layers + an optional faint aurora layer.</div>
+  </div>
+</div>
+
+<h2>3 · Landmark &amp; Town Vignettes</h2>
+<p class="meta">Optional painted backdrops for the named milestones (towns &amp; iconic landmarks in <code>web/data/locations.js</code>). Used behind the town/landmark panels.</p>
+<div class="card">
+  <p>Generate one 256×144 pixel vignette per high-value stop. Highest priority:</p>
+  <ul>
+    <li><span class="pill">Campo Southern Terminus monument</span> · <span class="pill">Bridge of the Gods / Cascade Locks</span> · <span class="pill">Crater Lake rim</span> · <span class="pill">Mt. Whitney sunrise</span> · <span class="pill">Forester Pass notch</span> · <span class="pill">Kennedy Meadows General Store porch</span> · <span class="pill">Northern Terminus Monument 78</span></li>
+  </ul>
+  <div class="prompt"><button class="copy">copy</button>Pixel-art vignette, 256x144, Sword & Sworcery style, of [LANDMARK NAME] on the Pacific Crest Trail. Iconic, atmospheric, limited palette matching the [BIOME] set. Flat silhouettes, glowing light, room for a small hiker to stand in the foreground. No UI, no text.</div>
+</div>
+
+<h2>4 · Props, Icons &amp; UI</h2>
+<div class="grid">
+  <div class="card">
+    <h3>Gear Item Icons</h3>
+    <p class="meta">→ <code>assets/icons/{id}.png</code> 32×32 — ids in <code>web/data/gear.js</code></p>
+    <div class="prompt"><button class="copy">copy</button>Set of 32x32 pixel-art inventory icons, transparent bg, consistent 2px dark outline, Sword & Sworcery muted palette. Items: ultralight tent, down quilt, bear canister, Sawyer water filter, ice axe, puffy jacket, rain jacket, trail runners, canister stove, cold-soak jar, sun hoodie, trekking poles. Clean, readable at small size, slight top-left light source.</div>
+  </div>
+  <div class="card">
+    <h3>Foreground Props</h3>
+    <p class="meta">→ <code>assets/props/{pine,saguaro,boulder,trailsign,tent,campfire}.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art foreground prop sprites, transparent bg, side view, Sword & Sworcery silhouette style: lone conifer, saguaro cactus, granite boulder, wooden PCT trail sign blaze, pitched tent, small campfire with animated 3-frame flame. Muted palette, ground-anchored.</div>
+  </div>
+  <div class="card">
+    <h3>Logo &amp; Title Treatment</h3>
+    <p class="meta">→ <code>assets/ui/logo.png</code></p>
+    <div class="prompt"><button class="copy">copy</button>Pixel-art game logo wordmark "THRU", chunky condensed slab letters in trail-sign gold (#f0c987) with a #6b4a2a drop shadow, a tiny hiker silhouette walking across the crossbar of the H. Transparent background, Sword & Sworcery mood. ~480px wide.</div>
+  </div>
+  <div class="card">
+    <h3>Weather Overlays</h3>
+    <p class="meta">→ <code>assets/fx/{rain,snow,fog,heat}.png</code> (tileable)</p>
+    <div class="prompt"><button class="copy">copy</button>Tileable pixel-art weather overlay sprites on transparent bg: diagonal rain streaks, drifting snow dots, soft fog band (dither), heat-shimmer wave. 2-3 frames each for animation. Subtle, low-opacity, must layer over any biome.</div>
+  </div>
+</div>
+
+<h2>5 · Texture Pixelation Workflow <span class="done">(tooling ready)</span></h2>
+<div class="card">
+  <p>For real photographic textures (rock, bark, dirt, snow) we <b>bake</b> pixel versions offline — never at runtime —
+  exactly as requested. The tool is committed at <code>web/scripts/pixelate.js</code>:</p>
+  <ol>
+    <li><code>npm i -D sharp</code> (one-time)</li>
+    <li>Drop source photos in <code>web/raw/</code></li>
+    <li><code>npm run pixelate -- --in raw/granite.jpg --out public/assets/tex/granite.png --size 128 --quantize</code></li>
+  </ol>
+  <p class="meta"><code>--size</code> sets the pixel grid resolution, <code>--quantize</code> snaps colors to the game palette, output is upscaled nearest-neighbour so the committed asset stays crisp. Commit the baked PNG, not the raw photo.</p>
+  <div class="note">Because pixel-art games generally avoid tiled textures, prefer this only for: ground/dirt strips, rock faces on near-ridge layers, and town building facades. Most surfaces should stay flat-shaded.</div>
+</div>
+
+<h2>6 · Audio</h2>
+<p class="meta">The repo has a <code>Content/Audio</code> folder. Generate ambient, loopable tracks + SFX. Tooling: Suno/Udio for music, or a tracker for chiptune. Save to <code>assets/audio/</code>.</p>
+<div class="grid">
+  <div class="card">
+    <h3>Ambient Trail Themes (loopable)</h3>
+    <div class="prompt"><button class="copy">copy</button>Calm, sparse ambient instrumental loop for a meditative pixel-art hiking game in the spirit of Sword & Sworcery's soundtrack (Jim Guthrie). 60–90s seamless loop. Variants: Desert (warm, dry, lap-steel & soft synth pads), Forest (damp reverb, fingerpicked guitar, birds), Mountain (airy, distant, slow strings), Alpine (crystalline bells, wind, hushed). Low tempo, no drums or minimal, emotionally open, never busy.</div>
+  </div>
+  <div class="card">
+    <h3>Stingers &amp; SFX</h3>
+    <div class="prompt"><button class="copy">copy</button>Short pixel-game SFX set, soft and warm not harsh: footstep on dirt (loop), arrive-at-town chime, trail-magic happy sparkle, encounter-success rising arpeggio, encounter-failure low thud, winter-warning cold drone, level-up / new-trail-name shimmer, button click. 8-bit/16-bit flavored but mellow.</div>
+  </div>
+</div>
+
+<h2>7 · Status Checklist</h2>
+<div class="card">
+  <ul>
+    <li class="done">✓ Playable game with procedural placeholder art (no external assets required)</li>
+    <li class="done">✓ Layer system &amp; palette defined to match the existing Unity character sheets</li>
+    <li class="done">✓ Offline texture-pixelation tool (<code>scripts/pixelate.js</code>)</li>
+    <li class="todo">▢ Character spritesheets (restyle/complete from repo's existing layers)</li>
+    <li class="todo">▢ Biome parallax backgrounds (4 biomes × 3 day phases)</li>
+    <li class="todo">▢ Landmark/town vignettes (7 priority stops)</li>
+    <li class="todo">▢ Gear icons, props, logo, weather FX</li>
+    <li class="todo">▢ Ambient music loops + SFX</li>
+  </ul>
+  <p class="meta">Wiring note for whoever drops assets in: the renderer in <code>public/js/art.js</code> draws everything procedurally
+  today. To use a real background, load it as an <code>Image</code> and blit it before the procedural props; to use real
+  character layers, replace <code>drawHiker()</code> with layered sprite draws keyed off the customizer selections. Both
+  hook points are commented in the source.</p>
+</div>
+
+</main>
+<script>
+  document.querySelectorAll('button.copy').forEach(b => b.addEventListener('click', () => {
+    const t = b.parentElement.innerText.replace(/^copy\n?/, '');
+    navigator.clipboard.writeText(t); b.textContent = 'copied!'; setTimeout(() => b.textContent = 'copy', 1200);
+  }));
+</script>
+</body>
+</html>

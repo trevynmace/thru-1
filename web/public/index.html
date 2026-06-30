@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thru — A Pacific Crest Trail Game</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%A5%BE%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- The animated pixel scene sits behind everything -->
+    <canvas id="scene"></canvas>
+
+    <!-- ===== MAIN MENU ===== -->
+    <section id="screen-menu" class="screen active">
+      <div class="title-block">
+        <h1 class="logo">THRU</h1>
+        <p class="tagline">A modern-day Oregon Trail. Walk the Pacific Crest Trail — Mexico to Canada, 2,650 miles — and try to beat the winter.</p>
+      </div>
+      <div class="menu-buttons">
+        <button class="btn primary" data-action="new-game">New Thru-Hike</button>
+        <button class="btn" data-action="continue">Continue</button>
+        <button class="btn" data-action="how-to">How to Play</button>
+      </div>
+      <p class="footnote">Northbound from Campo. Don't let winter catch you.</p>
+    </section>
+
+    <!-- ===== CHARACTER CREATION ===== -->
+    <section id="screen-create" class="screen">
+      <div class="panel wide">
+        <h2>Outfit your hiker</h2>
+        <div class="create-grid">
+          <div>
+            <label>Given name</label>
+            <div class="row">
+              <input id="inp-name" type="text" maxlength="20" placeholder="e.g. Juniper" />
+              <button class="btn small" data-action="roll-name">🎲</button>
+            </div>
+            <label>Trail name <span class="muted">(or earn one out there)</span></label>
+            <input id="inp-trailname" type="text" maxlength="24" placeholder="leave blank to be named on trail" />
+
+            <label>Direction</label>
+            <div class="seg" id="seg-direction">
+              <button class="seg-btn active" data-dir="NOBO">Northbound</button>
+              <button class="seg-btn" data-dir="SOBO">Southbound</button>
+            </div>
+
+            <label>Difficulty</label>
+            <div class="seg" id="seg-difficulty">
+              <button class="seg-btn" data-diff="casual">Day Hiker</button>
+              <button class="seg-btn active" data-diff="normal">Thru-Hiker</button>
+              <button class="seg-btn" data-diff="hard">Triple Crown</button>
+            </div>
+            <p class="muted small" id="diff-desc"></p>
+          </div>
+
+          <div>
+            <label>Appearance</label>
+            <div class="swatches">
+              <div class="swatch-group"><span>Skin</span><div class="swatches-row" data-kind="skin"></div></div>
+              <div class="swatch-group"><span>Shirt</span><div class="swatches-row" data-kind="shirt"></div></div>
+              <div class="swatch-group"><span>Pack</span><div class="swatches-row" data-kind="pack"></div></div>
+            </div>
+
+            <label>Stats <button class="btn small" data-action="reroll-stats">reroll 🎲</button></label>
+            <div id="stat-roll" class="stat-roll"></div>
+          </div>
+        </div>
+        <div class="row end">
+          <button class="btn" data-action="back-menu">Back</button>
+          <button class="btn primary" data-action="start-hike">Start at the Monument →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== HIKING HUD ===== -->
+    <section id="screen-hike" class="screen">
+      <header class="hud-top">
+        <div class="hud-id">
+          <span id="hud-trailname" class="trailname"></span>
+          <span id="hud-name" class="realname"></span>
+        </div>
+        <div class="hud-clock">
+          <span id="hud-date"></span>
+          <span class="muted">Day <b id="hud-day">1</b></span>
+        </div>
+      </header>
+
+      <div class="progress-wrap">
+        <div class="progress-rail">
+          <div id="progress-fill" class="progress-fill"></div>
+          <div id="progress-winter" class="progress-winter" title="The winter line"></div>
+          <div id="progress-hiker" class="progress-hiker">🥾</div>
+        </div>
+        <div class="progress-labels">
+          <span>Campo</span>
+          <span id="hud-mile" class="mile-readout">Mile 0</span>
+          <span>Canada</span>
+        </div>
+      </div>
+
+      <div class="hud-bottom">
+        <div id="stat-bars" class="stat-bars"></div>
+        <div class="hud-actions">
+          <div id="winter-warn" class="winter-warn"></div>
+          <div class="row">
+            <button class="btn primary big" data-action="hike">Hike ▸</button>
+            <button class="btn" data-action="open-map">Map</button>
+            <button class="btn" data-action="open-pack">Pack</button>
+            <button class="btn" id="btn-town" data-action="open-town" hidden>Town</button>
+            <button class="btn ghost" data-action="save-quit">Save & Quit</button>
+          </div>
+        </div>
+      </div>
+      <div id="toast" class="toast"></div>
+    </section>
+
+    <!-- ===== ENCOUNTER MODAL ===== -->
+    <div id="modal-encounter" class="modal">
+      <div class="card encounter-card">
+        <h3 id="enc-title"></h3>
+        <p id="enc-text"></p>
+        <div id="enc-options" class="enc-options"></div>
+        <div id="enc-result" class="enc-result" hidden></div>
+        <button id="enc-continue" class="btn primary" hidden data-action="enc-continue">Continue ▸</button>
+      </div>
+    </div>
+
+    <!-- ===== TOWN MODAL ===== -->
+    <div id="modal-town" class="modal">
+      <div class="card town-card">
+        <h3 id="town-name"></h3>
+        <p id="town-blurb" class="muted"></p>
+        <div id="town-actions" class="town-actions"></div>
+        <h4>Outfitter</h4>
+        <div id="town-shop" class="town-shop"></div>
+        <button class="btn primary" data-action="leave-town">Back to the trail ▸</button>
+      </div>
+    </div>
+
+    <!-- ===== MAP MODAL ===== -->
+    <div id="modal-map" class="modal">
+      <div class="card map-card">
+        <h3>The Pacific Crest Trail</h3>
+        <div id="map-list" class="map-list"></div>
+        <button class="btn primary" data-action="close-map">Close</button>
+      </div>
+    </div>
+
+    <!-- ===== PACK MODAL ===== -->
+    <div id="modal-pack" class="modal">
+      <div class="card pack-card">
+        <h3>Your Pack</h3>
+        <p class="muted small">Base weight: <b id="pack-weight"></b> oz. Lighter is faster; gear wears out with miles.</p>
+        <div id="pack-list" class="pack-list"></div>
+        <h4>Tramily</h4>
+        <div id="tramily-list" class="tramily-list"></div>
+        <button class="btn primary" data-action="close-pack">Close</button>
+      </div>
+    </div>
+
+    <!-- ===== END SCREEN ===== -->
+    <div id="modal-end" class="modal">
+      <div class="card end-card">
+        <h2 id="end-title"></h2>
+        <p id="end-text"></p>
+        <div id="end-stats" class="end-stats"></div>
+        <button class="btn primary" data-action="end-menu">Return to Menu</button>
+      </div>
+    </div>
+
+    <!-- ===== HOW TO PLAY ===== -->
+    <div id="modal-howto" class="modal">
+      <div class="card howto-card">
+        <h2>How to Play</h2>
+        <ul>
+          <li><b>The goal:</b> walk the entire PCT before winter catches you — 2,650 miles, Mexico to Canada.</li>
+          <li><b>No health, only Morale.</b> If your Morale drops below zero, you leave the trail and your hike is over.</li>
+          <li><b>The winter line</b> chases you up the trail. If it reaches your position, you're snowed off trail. Keep moving.</li>
+          <li><b>Hike</b> to advance a day. Your daily miles depend on Speed, Energy, Morale, terrain, and pack weight.</li>
+          <li><b>Encounters</b> are resolved by a stat check (your stat + a d20 vs a difficulty). Choose wisely.</li>
+          <li><b>Towns</b> let you spend money to restore Morale, Energy, and Snacks, buy gear, or take a zero day.</li>
+          <li><b>Tramily:</b> recruit fellow hikers for passive bonuses. <b>Gear</b> gives bonuses but wears and breaks.</li>
+        </ul>
+        <button class="btn primary" data-action="close-howto">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
