@@ -340,7 +340,7 @@ function refreshHUD() {
     const v = game.stats[s.key];
     const div = document.createElement('div'); div.className = 'sbar';
     const w = s.max ? Math.max(0, Math.min(100, (v / s.max) * 100)) : 100;
-    const display = s.key === 'Money' ? '$' + v : v;
+    const display = s.key === 'Money' ? '$' + Math.round(v) : Math.round(v);
     div.innerHTML = `<div class="sbar-top"><span>${s.key}</span><b>${display}</b></div>
       <div class="track"><div class="meter" style="width:${w}%;background:${v < 0 ? '#e08a7a' : s.color}"></div></div>`;
     bars.appendChild(div);

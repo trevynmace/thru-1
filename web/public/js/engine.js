@@ -134,7 +134,7 @@ export function advanceDay(g) {
 
   // Energy: spent hiking, restored by sleep (quilt/tent help). Clamp 0..100.
   const restore = 18 + (effectiveStat(g, 'Fitness') * 0.6);
-  g.stats.Energy = clamp(g.stats.Energy - actuallyMoved * 0.5 + restore, 0, 100);
+  g.stats.Energy = Math.round(clamp(g.stats.Energy - actuallyMoved * 0.5 + restore, 0, 100));
 
   // Morale drift: a hard day on trail slowly wears you down; scenery & tramily soften it.
   let moraleDelta = -2 - (terrain < 0.85 ? 2 : 0);
