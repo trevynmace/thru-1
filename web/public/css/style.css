@@ -189,3 +189,87 @@ input[type=text]:focus { outline: none; border-color: var(--gold-2); }
 .end-stats .stat { display: flex; justify-content: space-between; border-bottom: 1px dotted #ffffff22; padding: 3px 0; }
 .howto-card ul { line-height: 1.8; font-size: 14px; padding-left: 18px; }
 .howto-card li { margin-bottom: 6px; }
+
+/* ---- Mode select ---- */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 18px 0 6px; }
+.mode-card { text-align: left; background: #15111f; border: 2px solid var(--edge); border-radius: 8px; padding: 14px 16px;
+  cursor: pointer; transition: transform .06s, border-color .15s, background .15s; box-shadow: var(--shadow); }
+.mode-card:hover { border-color: var(--gold-2); transform: translateY(-2px); background: var(--panel-2); }
+.mode-card.selected { border-color: var(--gold); background: var(--panel-2); }
+.mode-card .mc-top { display: flex; align-items: center; gap: 10px; }
+.mode-card .mc-icon { font-size: 26px; line-height: 1; }
+.mode-card .mc-name { color: var(--gold); font-weight: 700; font-size: 16px; }
+.mode-card .mc-tag { color: var(--ink-dim); font-size: 12px; margin: 8px 0 0; line-height: 1.5; }
+.mode-card .mc-blurb { color: var(--ink); font-size: 12px; margin: 10px 0 0; line-height: 1.55; display: none; }
+.mode-card.selected .mc-blurb { display: block; }
+.mode-card .mc-go { margin-top: 12px; display: none; }
+.mode-card.selected .mc-go { display: block; }
+
+/* ---- Deckbuilder (Trailcraft) ---- */
+#screen-deck { justify-content: flex-start; padding: 0; gap: 0; }
+.deck-mid { width: 100%; padding: 8px 18px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.deck-stats { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; font-size: 15px; }
+.deck-stat { background: var(--panel-2); border: 1px solid var(--edge); border-radius: 6px; padding: 5px 12px; }
+#deck-stamina { color: var(--gold); border-color: var(--gold-2); }
+.deck-hand-wrap { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
+  padding: 10px 12px; overflow-x: auto; overflow-y: hidden; }
+.deck-hand { display: flex; gap: 12px; align-items: flex-end; min-height: 190px; padding: 6px; }
+.trail-card { width: 138px; min-height: 178px; background: linear-gradient(160deg, #2a2340, #1a1526); border: 2px solid var(--edge);
+  border-radius: 10px; padding: 12px; display: flex; flex-direction: column; cursor: pointer; box-shadow: var(--shadow);
+  transition: transform .08s, border-color .15s; position: relative; flex: 0 0 auto; }
+.trail-card:hover { transform: translateY(-8px); border-color: var(--gold-2); }
+.trail-card.unplayable { opacity: 0.45; cursor: not-allowed; }
+.trail-card.unplayable:hover { transform: none; border-color: var(--edge); }
+.trail-card .tc-cost { position: absolute; top: -10px; left: -10px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--gold); color: #2a1d0e; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; border: 2px solid #6b4a2a; }
+.trail-card .tc-name { color: var(--gold); font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.trail-card .tc-text { color: var(--ink); font-size: 12px; line-height: 1.5; flex: 1; }
+.trail-card .tc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.trail-card .tc-chip { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #00000044; color: var(--ink-dim); }
+.trail-card .tc-chip.mi { color: #f0d9a0; } .trail-card .tc-chip.mo { color: var(--good); }
+.trail-card .tc-chip.en { color: #7aa9e0; } .trail-card .tc-chip.sn { color: #e0b878; }
+.trail-card .tc-chip.st { color: var(--gold); } .trail-card .tc-chip.dr { color: #b59ad9; }
+.deck-bottom { margin-top: auto; }
+.deck-empty-note { color: var(--ink-dim); font-size: 13px; text-align: center; }
+
+/* ---- Deck view & card shop ---- */
+.deckview-list { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; max-height: 52vh; overflow: auto; }
+.deckview-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; background: #15111f;
+  border: 1px solid var(--edge); border-radius: 5px; font-size: 13px; }
+.deckview-row .dv-cost { width: 22px; height: 22px; border-radius: 50%; background: var(--gold-2); color: #2a1d0e;
+  font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 12px; flex: 0 0 auto; }
+.deckview-row .dv-name { color: var(--gold); font-weight: 700; }
+.deckview-row .dv-count { margin-left: auto; color: var(--ink-dim); }
+.cardshop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+.shop-card { text-align: left; }
+.shop-card .price { float: right; color: var(--gold); }
+.shop-card .sc-text { display: block; font-size: 11px; color: var(--ink-dim); margin-top: 4px; }
+
+/* ---- Journal ---- */
+.journal-list { display: flex; flex-direction: column; gap: 4px; margin: 14px 0; max-height: 60vh; overflow: auto; }
+.journal-entry { padding: 8px 10px; background: #15111f; border-left: 3px solid var(--gold-2); border-radius: 4px; font-size: 13px; line-height: 1.5; }
+.journal-entry .je-day { color: var(--gold-2); font-size: 11px; margin-bottom: 2px; }
+.journal-empty { color: var(--ink-dim); font-size: 13px; }
+
+/* ---- Standings (race) ---- */
+.standings-list { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+.standings-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: #15111f;
+  border: 1px solid var(--edge); border-radius: 6px; font-size: 14px; }
+.standings-row.you { border-color: var(--gold); background: var(--panel-2); }
+.standings-row.done { border-color: var(--good); }
+.standings-row .st-place { font-weight: 800; color: var(--gold); width: 24px; }
+.standings-row .st-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.standings-row .st-name { font-weight: 700; }
+.standings-row .st-mile { margin-left: auto; color: var(--ink-dim); font-size: 12px; }
+.progress-rivals { position: absolute; inset: 0; pointer-events: none; }
+.rival-marker { position: absolute; top: -7px; width: 10px; height: 10px; border-radius: 50%; transform: translateX(-50%);
+  border: 1px solid #00000066; transition: left .4s; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+
+/* ---- Mode HUD extras & end share ---- */
+.hud-mode-extra { display: block; font-size: 12px; color: var(--gold-2); margin-top: 2px; }
+.end-extra { margin: 6px 0 16px; }
+.end-share { background: #15111f; border: 2px solid var(--edge); border-radius: 6px; padding: 12px; font-size: 14px;
+  line-height: 1.6; letter-spacing: 0.08em; margin-bottom: 10px; word-break: break-word; }
+.end-best { color: var(--gold); font-weight: 700; font-size: 14px; }
+.end-place { font-size: 22px; color: var(--gold); font-weight: 800; margin-bottom: 6px; }

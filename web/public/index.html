@@ -19,11 +19,76 @@
         <p class="tagline">A modern-day Oregon Trail. Walk the Pacific Crest Trail — Mexico to Canada, 2,650 miles — and try to beat the winter.</p>
       </div>
       <div class="menu-buttons">
-        <button class="btn primary" data-action="new-game">New Thru-Hike</button>
+        <button class="btn primary" data-action="choose-mode">New Hike</button>
         <button class="btn" data-action="continue">Continue</button>
         <button class="btn" data-action="how-to">How to Play</button>
       </div>
       <p class="footnote">Northbound from Campo. Don't let winter catch you.</p>
+    </section>
+
+    <!-- ===== MODE SELECT ===== -->
+    <section id="screen-modes" class="screen">
+      <div class="panel wide">
+        <h2>Choose how to hike</h2>
+        <p class="muted small" style="margin-top:-10px">Six different ways to walk the Pacific Crest Trail. These are experiments — every one is a fully playable game.</p>
+        <div id="mode-grid" class="mode-grid"></div>
+        <div class="row end">
+          <button class="btn" data-action="back-menu">Back</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DECKBUILDER (Trailcraft) SCREEN ===== -->
+    <section id="screen-deck" class="screen">
+      <header class="hud-top">
+        <div class="hud-id">
+          <span id="deck-trailname" class="trailname"></span>
+          <span class="realname">🃏 Trailcraft</span>
+        </div>
+        <div class="hud-clock">
+          <span id="deck-date"></span>
+          <span class="muted">Day <b id="deck-day">1</b></span>
+        </div>
+      </header>
+
+      <div class="progress-wrap">
+        <div class="progress-rail">
+          <div id="deck-progress-fill" class="progress-fill"></div>
+          <div id="deck-progress-winter" class="progress-winter" title="The winter line"></div>
+          <div id="deck-progress-hiker" class="progress-hiker">🥾</div>
+        </div>
+        <div class="progress-labels">
+          <span>Campo</span>
+          <span id="deck-mile" class="mile-readout">Mile 0</span>
+          <span>Canada</span>
+        </div>
+      </div>
+
+      <div class="deck-mid">
+        <div class="deck-stats">
+          <span class="deck-stat" id="deck-morale">♥ 0</span>
+          <span class="deck-stat" id="deck-snacks">🍫 0</span>
+          <span class="deck-stat" id="deck-money">$0</span>
+          <span class="deck-stat" id="deck-stamina" title="Stamina — spend it to play cards">⚡ 0/0</span>
+        </div>
+        <div id="deck-winter-warn" class="winter-warn"></div>
+      </div>
+
+      <div class="deck-hand-wrap">
+        <div id="deck-hand" class="deck-hand"></div>
+      </div>
+
+      <div class="hud-bottom deck-bottom">
+        <div class="row">
+          <button class="btn primary big" data-action="make-camp">Make Camp ▸</button>
+          <button class="btn" data-action="open-deckview">Deck</button>
+          <button class="btn" data-action="open-map">Map</button>
+          <button class="btn" data-action="open-pack">Pack</button>
+          <button class="btn" id="btn-deck-town" data-action="open-cardshop" hidden>Outfitter</button>
+          <button class="btn ghost" data-action="save-quit">Save & Quit</button>
+        </div>
+      </div>
+      <div id="toast-deck" class="toast"></div>
     </section>
 
     <!-- ===== CHARACTER CREATION ===== -->
@@ -84,6 +149,7 @@
         <div class="hud-clock">
           <span id="hud-date"></span>
           <span class="muted">Day <b id="hud-day">1</b></span>
+          <span id="hud-mode-extra" class="hud-mode-extra"></span>
         </div>
       </header>
 
@@ -91,6 +157,7 @@
         <div class="progress-rail">
           <div id="progress-fill" class="progress-fill"></div>
           <div id="progress-winter" class="progress-winter" title="The winter line"></div>
+          <div id="progress-rivals" class="progress-rivals"></div>
           <div id="progress-hiker" class="progress-hiker">🥾</div>
         </div>
         <div class="progress-labels">
@@ -108,6 +175,8 @@
             <button class="btn primary big" data-action="hike">Hike ▸</button>
             <button class="btn" data-action="open-map">Map</button>
             <button class="btn" data-action="open-pack">Pack</button>
+            <button class="btn" id="btn-standings" data-action="open-standings" hidden>Standings</button>
+            <button class="btn" id="btn-journal" data-action="open-journal" hidden>Journal</button>
             <button class="btn" id="btn-town" data-action="open-town" hidden>Town</button>
             <button class="btn ghost" data-action="save-quit">Save & Quit</button>
           </div>
@@ -160,12 +229,60 @@
       </div>
     </div>
 
+    <!-- ===== DECK VIEW MODAL (Trailcraft) ===== -->
+    <div id="modal-deckview" class="modal">
+      <div class="card deck-card">
+        <h3>Your Hiking Deck</h3>
+        <p class="muted small">The cards you draw from, day to day. Buy more and cull the dead weight at any Outfitter.</p>
+        <div id="deckview-list" class="deckview-list"></div>
+        <p class="muted small" id="deckview-piles"></p>
+        <button class="btn primary" data-action="close-deckview">Close</button>
+      </div>
+    </div>
+
+    <!-- ===== CARD SHOP MODAL (Trailcraft towns) ===== -->
+    <div id="modal-cardshop" class="modal">
+      <div class="card town-card">
+        <h3 id="cardshop-name"></h3>
+        <p id="cardshop-blurb" class="muted"></p>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h4 style="margin:14px 0 8px">Resupply</h4>
+          <span class="muted small" id="cardshop-money"></span>
+        </div>
+        <div id="cardshop-basics" class="town-actions"></div>
+        <h4>Buy trail cards <span class="muted small">— add to your deck</span></h4>
+        <div id="cardshop-buy" class="cardshop-grid"></div>
+        <h4>Cull a card <span class="muted small">— pay to thin your deck</span></h4>
+        <div id="cardshop-cull" class="cardshop-grid"></div>
+        <button class="btn primary" data-action="leave-cardshop">Back to the trail ▸</button>
+      </div>
+    </div>
+
+    <!-- ===== JOURNAL MODAL (Zen) ===== -->
+    <div id="modal-journal" class="modal">
+      <div class="card journal-card">
+        <h3>Trail Journal</h3>
+        <div id="journal-list" class="journal-list"></div>
+        <button class="btn primary" data-action="close-journal">Close</button>
+      </div>
+    </div>
+
+    <!-- ===== STANDINGS MODAL (Race) ===== -->
+    <div id="modal-standings" class="modal">
+      <div class="card standings-card">
+        <h3>The Bubble — Standings</h3>
+        <div id="standings-list" class="standings-list"></div>
+        <button class="btn primary" data-action="close-standings">Close</button>
+      </div>
+    </div>
+
     <!-- ===== END SCREEN ===== -->
     <div id="modal-end" class="modal">
       <div class="card end-card">
         <h2 id="end-title"></h2>
         <p id="end-text"></p>
         <div id="end-stats" class="end-stats"></div>
+        <div id="end-extra" class="end-extra" hidden></div>
         <button class="btn primary" data-action="end-menu">Return to Menu</button>
       </div>
     </div>
@@ -182,6 +299,15 @@
           <li><b>Encounters</b> are resolved by a stat check (your stat + a d20 vs a difficulty). Choose wisely.</li>
           <li><b>Towns</b> let you spend money to restore Morale, Energy, and Snacks, buy gear, or take a zero day.</li>
           <li><b>Tramily:</b> recruit fellow hikers for passive bonuses. <b>Gear</b> gives bonuses but wears and breaks.</li>
+        </ul>
+        <h4>Six ways to play</h4>
+        <ul>
+          <li><b>🥾 Expedition</b> — the classic thru-hike described above.</li>
+          <li><b>♾️ Forever Trail</b> — an endless, escalating run; chase your furthest mile.</li>
+          <li><b>📅 Trail of the Day</b> — one deterministic seed for everyone, scored over a 45-day season.</li>
+          <li><b>🌿 Hike Your Own Hike</b> — no winter, no losing; a walking meditation with a journal.</li>
+          <li><b>🃏 Trailcraft</b> — a deckbuilder: draw cards, spend Stamina, build your kit to Canada.</li>
+          <li><b>🏁 The Bubble</b> — race four rival hikers north and fight for placement.</li>
         </ul>
         <button class="btn primary" data-action="close-howto">Got it</button>
       </div>

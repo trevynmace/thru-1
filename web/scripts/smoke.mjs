@@ -15,7 +15,10 @@ page.on('pageerror', e => errors.push('pageerror: ' + e.message));
 
 try {
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
-  await page.click('[data-action="new-game"]');
+  await page.click('[data-action="choose-mode"]');
+  await page.waitForSelector('#screen-modes.active');
+  await page.click('.mode-card[data-mode="classic"]');
+  await page.click('button[data-action="begin-mode"][data-mode="classic"]');
   await page.waitForSelector('#screen-create.active');
   await page.fill('#inp-name', 'Smokey');
   await page.click('[data-action="start-hike"]');

@@ -9,7 +9,7 @@
 [![runtime](https://img.shields.io/badge/runtime-Node%2018+-3a7163?style=for-the-badge&logo=node.js&logoColor=white)](#-running-it)
 [![desktop](https://img.shields.io/badge/desktop-Electron-2a2f55?style=for-the-badge&logo=electron&logoColor=white)](#-desktop--steam)
 [![style](https://img.shields.io/badge/art-Sword%20%26%20Sworcery-caa06a?style=for-the-badge)](#-the-look)
-[![tests](https://img.shields.io/badge/tests-7%2F7%20passing-8fd9a8?style=for-the-badge)](#-testing--verification)
+[![tests](https://img.shields.io/badge/tests-15%2F15%20passing-8fd9a8?style=for-the-badge)](#-testing--verification)
 [![assets](https://img.shields.io/badge/external%20assets-zero%20required-c96f5a?style=for-the-badge)](#-the-look)
 
 <img src="docs/screenshots/menu.png" width="820" alt="Thru title screen — a dusk desert under parallax ridgelines" />
@@ -86,6 +86,31 @@ keep hiking, duck into a **Town**, check the **Map**, or audit your **Pack**.
 <div align="center">
 <img src="docs/screenshots/end.png" width="700" alt="End screen — a narrative epilogue and a run summary" />
 </div>
+
+---
+
+## 🎲 Six ways to play
+
+The gameplay loop above is **Expedition** — the classic. But *how* you play it is now a choice. From **New Hike** you pick a **mode**: six self-contained rulesets that reshape the same trail, stats, gear, encounters, and towns into genuinely different games. These are **release-candidate experiments** — each is fully playable end-to-end, with its own HUD, win/lose logic, and end screen — built so we can decide which direction the real game takes.
+
+<div align="center">
+<img src="docs/screenshots/modes.png" width="820" alt="The mode-select screen — six mode cards over the desert at dusk" />
+</div>
+
+| Mode | The core idea | What's different |
+|---|---|---|
+| 🥾 **Expedition** | The classic 2,650-mile thru-hike. | The original game, unchanged. |
+| ♾️ **Forever Trail** | *Endless.* Reach Canada and the trail **loops back** to the desert, harder. Winter accelerates the longer you last. | No terminus win — only your **furthest mile**. Escalating difficulty, **lap** counter, and a persistent **personal best**. |
+| 📅 **Trail of the Day** | *Daily challenge.* One seed derived from **today's date** — identical stats, weather, and encounters for everyone. | Deterministic, no character creation, a **45-day season window**, and a **shareable emoji result**. |
+| 🌿 **Hike Your Own Hike** | *Zen.* No winter, and your morale can dip but never end your hike. | **No fail state.** A meditative walk that fills a dated **trail journal** with the story of your hike. |
+| 🃏 **Trailcraft** | *Deckbuilder.* Each day you draw a hand of trail cards and spend **Stamina** to play them for miles, morale, and rest. | An entirely **different core loop** and screen — draw/play/**make camp**, then **buy & cull** cards at every outfitter to sculpt your deck. |
+| 🏁 **The Bubble** | *Race.* Four AI rival hikers — each with a pace personality — race you to the monument. | Live **standings** and rival markers on the trail, rubber-band AI, and a **placement** finish. First to Canada wins the year. |
+
+<div align="center">
+<img src="docs/screenshots/deck.png" width="820" alt="The Trailcraft deckbuilder — a hand of trail cards with cost pips and effect chips" />
+</div>
+
+> **Under the hood:** modes live in [`data/modes.js`](./data/modes.js) as plain data with lifecycle *hooks* (`init` / `onDayEnd` / `checkEnd`) the pure engine calls at the right moments — so a mode can't corrupt the core simulation, and every mode is covered by the headless test suite. The deckbuilder's card catalog is [`data/deck.js`](./data/deck.js). Adding a seventh mode is a data change, not an engine rewrite.
 
 ---
 
@@ -285,6 +310,8 @@ web/
 │   ├── locations.js          42 real PCT milestones (miles, elevations, biomes)
 │   ├── encounters.js         the biome-tagged encounter deck + weighted roller
 │   ├── gear.js               the gear catalog
+│   ├── modes.js              ← the six game modes: metadata + lifecycle hooks
+│   ├── deck.js               ← Trailcraft's trail-card catalog + starter deck
 │   └── names.js              name pools, trail-name generator, tramily perks
 ├── electron/main.js        desktop wrapper: spawns the server, opens a window
 ├── scripts/
@@ -317,9 +344,9 @@ packaged for distribution.
 ## ✅ Testing & verification
 
 ```bash
-npm test                    # node --test — 7 engine invariants (progress, both lose
+npm test                    # node --test — 15 engine invariants (progress, both lose
                             #   conditions, win reachable, encounter resolution,
-                            #   save round-trip, town economy)
+                            #   save round-trip, town economy, and all six modes)
 node scripts/smoke.mjs      # headless browser: creates a hiker, plays ~30 days through
                             #   encounters & towns to an end screen, asserts 0 console errors
 ```

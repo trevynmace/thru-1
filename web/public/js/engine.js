@@ -9,6 +9,8 @@
 import { LOCATIONS, TERMINUS_NORTH_MILE, lastPassed, nextLocation, biomeAt } from '../../data/locations.js';
 import { GEAR_BY_ID, STARTER_GEAR } from '../../data/gear.js';
 import { generateTrailName, randomName, TRAMILY_PERKS } from '../../data/names.js';
+import { MODES } from '../../data/modes.js';
+import { CARDS, STARTER_DECK, HAND_SIZE, STAMINA_MAX, CULL_COST } from '../../data/deck.js';
 
 export const STAT_KEYS = ['Speed','Fitness','Charisma','Cleverness','Chillness','Energy','Luck','Outdoorsyness'];
 
@@ -39,14 +41,16 @@ function addDays(month, day, n) {
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 export function dateLabel(d) { return `${MONTH_NAMES[d.month - 1]} ${d.day}`; }
 
-export function newGame({ name, trailName, gender, difficulty = 'normal', direction = 'NOBO', stats, seed }) {
+export function newGame({ name, trailName, gender, difficulty = 'normal', direction = 'NOBO', stats, seed, mode = 'classic' }) {
   const diff = DIFFICULTY[difficulty];
-  const rng = makeRng((seed ?? Math.floor(Math.random() * 1e9)) >>> 0);
+  const usedSeed = (seed ?? Math.floor(Math.random() * 1e9)) >>> 0;
+  const rng = makeRng(usedSeed);
   const base = stats || rollStats(rng);
   const startMile = direction === 'NOBO' ? 0 : TERMINUS_NORTH_MILE;
-  return {
+  const g = {
     name, trailName: trailName || '', gender: gender || 'female',
-    difficulty, direction, seed: seed ?? null, rng,
+    difficulty, direction, seed: seed ?? usedSeed, rng,
+    mode,
     stats: { ...base, Morale: diff.moraleStart, Money: diff.money, Snacks: 70, Miles: 0 },
     mile: startMile,
     day: 1,
@@ -62,6 +66,20 @@ export function newGame({ name, trailName, gender, difficulty = 'normal', direct
     cause: null,
     visited: new Set(),
   };
+  attachMode(g);
+  g.modeDef?.init?.(g);
+  if (g.modeDef?.deck) initDeck(g);
+  return g;
+}
+
+// Tiny helpers exposed to mode hooks so they can mutate state without importing engine.
+function attachMode(g) {
+  g.modeDef = MODES[g.mode] || MODES.classic;
+  g.helpers = { clamp, applyStat: (key, delta) => applyStat(g, key, delta) };
+}
+export function modeFlag(g, key, dflt) {
+  const v = g.modeDef?.[key];
+  return v === undefined ? dflt : v;
 }
 
 export function rollStats(rng = Math.random) {
@@ -142,10 +160,10 @@ export function advanceDay(g) {
   moraleDelta *= tramilyMul(g, 'moraleRate', 1);
   g.stats.Morale = Math.round(clamp(g.stats.Morale + moraleDelta, -20, 100));
 
-  // Advance the calendar and the winter line.
+  // Advance the calendar and the winter line (winter is inert in no-winter modes).
   g.day += 1;
   g.date = addDays(g.date.month, g.date.day, 1);
-  g.winterMile += (g.direction === 'NOBO' ? 1 : -1) * g.winterPerDay;
+  if (modeFlag(g, 'winter', true)) g.winterMile += (g.direction === 'NOBO' ? 1 : -1) * g.winterPerDay;
 
   const events = [];
   if (broken.length) events.push({ type: 'gear-break', text: `Your ${broken.join(' and ')} finally gave out.` });
@@ -158,16 +176,29 @@ export function advanceDay(g) {
     events.push({ type: 'arrive', location: here });
   }
 
+  // Per-mode day hook (endless lap-wrap, race rivals, zen floor…) runs before the
+  // end-condition check so a wrapped/repositioned hiker is judged in its new place.
+  g._lapEvent = false;
+  g.modeDef?.onDayEnd?.(g, { miles: actuallyMoved, biome, events });
+  if (g._lapEvent) events.push({ type: 'lap', lap: g.lap });
+
   checkEndConditions(g);
   return { miles: actuallyMoved, biome, events, ended: g.status !== 'playing' };
 }
 
 function checkEndConditions(g) {
-  if (g.stats.Morale < 0) { g.status = 'lost'; g.cause = 'morale'; return; }
-  const caught = g.direction === 'NOBO' ? g.winterMile >= g.mile : g.winterMile <= g.mile;
-  if (caught) { g.status = 'lost'; g.cause = 'winter'; return; }
-  const atEnd = g.direction === 'NOBO' ? g.mile >= TERMINUS_NORTH_MILE : g.mile <= 0;
-  if (atEnd) { g.status = 'won'; g.cause = 'finish'; }
+  const min = g.modeDef?.zen ? 5 : 0;
+  if (g.stats.Morale < min && !g.modeDef?.zen) { g.status = 'lost'; g.cause = 'morale'; return; }
+  if (modeFlag(g, 'winter', true)) {
+    const caught = g.direction === 'NOBO' ? g.winterMile >= g.mile : g.winterMile <= g.mile;
+    if (caught) { g.status = 'lost'; g.cause = 'winter'; return; }
+  }
+  if (modeFlag(g, 'terminus', true)) {
+    const atEnd = g.direction === 'NOBO' ? g.mile >= TERMINUS_NORTH_MILE : g.mile <= 0;
+    if (atEnd) { g.status = 'won'; g.cause = 'finish'; }
+  }
+  // Custom per-mode end conditions (daily season window, etc.).
+  g.modeDef?.checkEnd?.(g);
 }
 
 // --- Encounter resolution (stat + d20 >= DC), mirrors original Encounter.rollEncounter ---
@@ -277,13 +308,159 @@ export function progressPct(g) { return clamp(g.stats.Miles / TERMINUS_NORTH_MIL
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-// Plain-data snapshot for saving (drops the rng function and the visited Set).
+// ============================================================================
+//  Trailcraft — the deckbuilder mode runtime.
+//  A completely different loop: draw a hand, spend Stamina to play cards for
+//  miles/morale/rest, then "make camp" to end the day and let winter advance.
+// ============================================================================
+export function initDeck(g) {
+  g.deck = {
+    cards: [...STARTER_DECK],   // the master deck (for the deckbuilding view)
+    draw: [], hand: [], discard: [],
+    stamina: STAMINA_MAX, staminaMax: STAMINA_MAX,
+    campsMade: 0,
+  };
+  g.deck.draw = shuffle(g, [...g.deck.cards]);
+  drawHand(g);
+}
+
+function shuffle(g, arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(g.rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function drawOne(g) {
+  const d = g.deck;
+  if (d.draw.length === 0) {
+    if (d.discard.length === 0) return null; // deck exhausted this day
+    d.draw = shuffle(g, d.discard);
+    d.discard = [];
+  }
+  const id = d.draw.pop();
+  d.hand.push(id);
+  return id;
+}
+
+// Start-of-day: discard the old hand, refill Stamina, draw a fresh hand.
+function drawHand(g) {
+  const d = g.deck;
+  d.discard.push(...d.hand);
+  d.hand = [];
+  d.stamina = d.staminaMax;
+  for (let i = 0; i < HAND_SIZE; i++) drawOne(g);
+}
+
+export function deckHand(g) {
+  return g.deck.hand.map((id, i) => {
+    const card = CARDS[id];
+    return { index: i, id, card, playable: g.deck.stamina >= card.cost };
+  });
+}
+
+// Play the card at hand index. Returns { ok, card, applied, camped }.
+export function playCard(g, index) {
+  if (g.status !== 'playing') return { ok: false, reason: 'Run over.' };
+  const d = g.deck;
+  const id = d.hand[index];
+  if (id == null) return { ok: false, reason: 'No such card.' };
+  const card = CARDS[id];
+  if (d.stamina < card.cost) return { ok: false, reason: 'Not enough Stamina.' };
+
+  d.stamina -= card.cost;
+  d.hand.splice(index, 1);
+  d.discard.push(id);
+
+  const fx = card.fx;
+  const applied = {};
+  if (fx.miles) { applyStat(g, 'Miles', fx.miles); applied.miles = fx.miles; }
+  if (fx.morale) { applyStat(g, 'Morale', fx.morale); applied.morale = fx.morale; }
+  if (fx.energy) { applyStat(g, 'Energy', fx.energy); applied.energy = fx.energy; }
+  if (fx.snacks) { applyStat(g, 'Snacks', fx.snacks); applied.snacks = fx.snacks; }
+  if (fx.money)  { applyStat(g, 'Money', fx.money);  applied.money  = fx.money; }
+  if (fx.stamina) { d.stamina = Math.min(d.staminaMax + 3, d.stamina + fx.stamina); applied.stamina = fx.stamina; }
+  if (fx.draw) { for (let i = 0; i < fx.draw; i++) drawOne(g); applied.draw = fx.draw; }
+
+  checkEndConditions(g);
+  let camped = false;
+  if (fx.camp && g.status === 'playing') { makeCamp(g); camped = true; }
+  return { ok: true, card, applied, camped };
+}
+
+// Make camp: end the day. Winter creeps, food/morale drift, a new hand is dealt.
+export function makeCamp(g) {
+  const d = g.deck;
+  d.campsMade++;
+  // Wear gear a nominal amount per day so kit still matters in this mode.
+  const dayMiles = 14;
+  for (const item of g.gear) if (item.wear > 0) item.wear = Math.max(0, item.wear - dayMiles);
+
+  // Food & morale drift.
+  const snackRate = tramilyMul(g, 'snackRate', 1);
+  applyStat(g, 'Snacks', -Math.round(6 * snackRate));
+  let moraleDelta = -2;
+  if (g.stats.Snacks <= 0) moraleDelta -= 8;
+  moraleDelta *= tramilyMul(g, 'moraleRate', 1);
+  applyStat(g, 'Morale', moraleDelta);
+  // A quilt/tent-aided night restores a little energy.
+  applyStat(g, 'Energy', Math.round(8 + effectiveStat(g, 'Fitness') * 0.4));
+
+  // Calendar + winter.
+  g.day += 1;
+  g.date = addDays(g.date.month, g.date.day, 1);
+  if (modeFlag(g, 'winter', true)) g.winterMile += (g.direction === 'NOBO' ? 1 : -1) * g.winterPerDay;
+
+  const events = [];
+  const here = lastPassed(g.mile);
+  if (!g.visited.has(here.id)) { g.visited.add(here.id); events.push({ type: 'arrive', location: here }); }
+
+  g.modeDef?.onDayEnd?.(g, { miles: dayMiles, biome: biomeAt(g.mile), events });
+  checkEndConditions(g);
+  if (g.status === 'playing') drawHand(g);
+  return { events, biome: biomeAt(g.mile), ended: g.status !== 'playing' };
+}
+
+// Town deckbuilding: buy a card into the deck, or pay to cull one out of it.
+export function buyCard(g, id) {
+  const def = CARDS[id];
+  if (!def || def.kind !== 'shop') return { ok: false, reason: 'Not for sale.' };
+  const cost = Math.round(def.price * townDiscount(g));
+  if (g.stats.Money < cost) return { ok: false, reason: 'Not enough money.' };
+  g.stats.Money -= cost;
+  g.deck.cards.push(id);
+  g.deck.discard.push(id); // new card enters the discard, in play next reshuffle
+  return { ok: true, cost };
+}
+
+export function cullCard(g, id) {
+  const cost = CULL_COST;
+  if (g.stats.Money < cost) return { ok: false, reason: 'Not enough money.' };
+  const d = g.deck;
+  const removeFrom = (arr) => { const i = arr.indexOf(id); if (i >= 0) { arr.splice(i, 1); return true; } return false; };
+  // Remove one instance from the master list, and from wherever it currently sits.
+  if (!removeFrom(d.cards)) return { ok: false, reason: 'Not in your deck.' };
+  removeFrom(d.hand) || removeFrom(d.discard) || removeFrom(d.draw);
+  g.stats.Money -= cost;
+  return { ok: true, cost };
+}
+
+export function deckCounts(g) {
+  const tally = {};
+  for (const id of g.deck.cards) tally[id] = (tally[id] || 0) + 1;
+  return tally;
+}
+
+// Plain-data snapshot for saving (drops functions: rng, mode hooks, helpers).
 export function serialize(g) {
-  return JSON.stringify({ ...g, rng: undefined, visited: [...g.visited] });
+  return JSON.stringify({ ...g, rng: undefined, modeDef: undefined, helpers: undefined, visited: [...g.visited] });
 }
 export function deserialize(json) {
   const o = typeof json === 'string' ? JSON.parse(json) : json;
   o.visited = new Set(o.visited || []);
+  o.mode = o.mode || 'classic';
   o.rng = makeRng((o.seed ?? Math.floor(Math.random() * 1e9)) >>> 0);
+  attachMode(o); // re-link the mode ruleset (functions can't be serialized)
   return o;
 }

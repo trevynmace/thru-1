@@ -18,7 +18,10 @@ await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
 await wait(900); await shot('menu');
 
 // 2) Character creation — fill it out nicely
-await page.click('[data-action="new-game"]');
+await page.click('[data-action="choose-mode"]');
+await page.waitForSelector('#screen-modes.active');
+await page.click('.mode-card[data-mode="classic"]');
+await page.click('button[data-action="begin-mode"][data-mode="classic"]');
 await page.waitForSelector('#screen-create.active'); await wait(300);
 await page.fill('#inp-name', 'Juniper');
 await page.click('.swatches-row[data-kind="skin"] .sw:nth-child(3)');
