@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NORTHBOUND</title>
+<meta name="description" content="An Oregon Trail clone on the Pacific Crest Trail. Lead five hikers, a gear cart and a string of mules 2,650 miles to Canada before the snow closes the passes.">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%230e0b17'/><path d='M2 12h12M4 12l4-8 4 8' stroke='%23f2c98a' fill='none' stroke-width='1.5'/></svg>">
+</head>
+<body>
+<div id="app">
+  <!-- The world. Everything diegetic renders into this 320x180 buffer. -->
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <!-- Particles, transitions, minigames. Same internal resolution, drawn on top. -->
+  <canvas id="overlay" aria-hidden="true"></canvas>
+
+  <!-- ============================ TITLE ============================ -->
+  <section class="screen" id="screen-title" data-screen="title">
+    <div class="title-block">
+      <h1 class="logo">NORTHBOUND</h1>
+      <p class="subtitle">two thousand six hundred and fifty miles</p>
+      <p class="tagline">
+        Five hikers, a gear cart and a string of mules leave the Mexican border in spring.
+        Canada is a long way north, and the snow is already thinking about the passes.
+      </p>
+    </div>
+    <nav class="menu-buttons" id="title-menu"></nav>
+    <p class="footnote">Arrow keys or mouse. <kbd>Enter</kbd> to choose, <kbd>Esc</kbd> to go back.</p>
+  </section>
+
+  <!-- ============================ SETUP ============================ -->
+  <section class="screen" id="screen-setup" data-screen="setup"></section>
+
+  <!-- ============================ STORE ============================ -->
+  <section class="screen" id="screen-store" data-screen="store"></section>
+
+  <!-- ============================ TRAIL (main HUD) ============================ -->
+  <section class="screen screen-hud" id="screen-trail" data-screen="trail">
+    <header class="hud-top">
+      <div class="hud-block hud-id">
+        <span class="hud-label">Trail Boss</span>
+        <span class="hud-value" id="hud-leader">—</span>
+        <span class="hud-sub" id="hud-occupation">—</span>
+      </div>
+      <div class="hud-block hud-center">
+        <span class="hud-value big" id="hud-date">—</span>
+        <span class="hud-sub" id="hud-weather">—</span>
+      </div>
+      <div class="hud-block hud-right">
+        <span class="hud-label">Mile</span>
+        <span class="hud-value big" id="hud-mile">0</span>
+        <span class="hud-sub" id="hud-next">—</span>
+      </div>
+    </header>
+
+    <div class="hud-rail">
+      <div class="rail-track" id="rail-track">
+        <div class="rail-fill" id="rail-fill"></div>
+        <div class="rail-snow" id="rail-snow" title="The snow line"></div>
+        <div class="rail-you" id="rail-you" title="Your crew"></div>
+      </div>
+      <div class="rail-legend">
+        <span>Campo</span>
+        <span id="rail-status" class="rail-status"></span>
+        <span>Manning Park</span>
+      </div>
+    </div>
+
+    <footer class="hud-bottom">
+      <div class="hud-readout" id="hud-readout"></div>
+      <div class="hud-crew" id="hud-crew"></div>
+      <div class="hud-actions" id="hud-actions"></div>
+    </footer>
+  </section>
+
+  <!-- ============================ MODAL SCREENS ============================ -->
+  <section class="screen" id="screen-landmark" data-screen="landmark"></section>
+  <section class="screen" id="screen-map" data-screen="map"></section>
+  <section class="screen" id="screen-pack" data-screen="pack"></section>
+  <section class="screen" id="screen-party" data-screen="party"></section>
+  <section class="screen" id="screen-event" data-screen="event"></section>
+  <section class="screen" id="screen-camp" data-screen="camp"></section>
+  <section class="screen" id="screen-talk" data-screen="talk"></section>
+  <section class="screen" id="screen-trade" data-screen="trade"></section>
+  <section class="screen" id="screen-forage" data-screen="forage"></section>
+  <section class="screen" id="screen-ford" data-screen="ford"></section>
+  <section class="screen" id="screen-end" data-screen="end"></section>
+  <section class="screen" id="screen-scores" data-screen="scores"></section>
+  <section class="screen" id="screen-settings" data-screen="settings"></section>
+  <section class="screen" id="screen-help" data-screen="help"></section>
+
+  <!-- ============================ CHROME ============================ -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="journal" id="journal" aria-live="polite"></div>
+  <button class="icon-btn" id="btn-sound" title="Sound (M)" aria-label="Toggle sound">♪</button>
+  <div class="wipe" id="wipe" aria-hidden="true"></div>
+</div>
+
+<noscript><p style="color:#f4ecdd;font-family:monospace;padding:2rem">NORTHBOUND needs JavaScript.</p></noscript>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
