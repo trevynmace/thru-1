@@ -41,6 +41,7 @@ snow line closing in behind you — and rebuilds it as a **faithful Oregon Trail
 | Hunt buffalo, carry 100 lb back | Forage berries, mushrooms and fish, carry 100 lb back |
 | Dysentery, measles, typhoid | Giardia, norovirus, hypothermia, stress fracture, snakebite |
 | Reach Oregon before winter | Reach Manning Park before the snow line catches you |
+| Leave in March vs July | Leave in March vs June — and the Sierra snowpack is the price of leaving early |
 | Tombstones with epitaphs | Cairns with epitaphs |
 | Points × occupation multiplier | Points × occupation multiplier |
 
@@ -90,6 +91,26 @@ thirteen steps, in the same order, every time:
 ```
 
 Everything else — the store, the map, the pack, the crew screen, foraging, fords — hangs off that tick.
+
+### The two calendars
+
+The snow line chases you from the north, and it always closes the northern terminus on the
+same date. So leaving early buys weeks of slack. What it costs is the other calendar: the
+**Sierra snowpack**, which is still sitting on the high country until mid-June. Arrive
+before it melts out and the passes are postholing, whiteouts and creeks at peak melt.
+
+That makes the departure month a real decision instead of a ladder. Measured over 400 seeds
+per policy with a competent player:
+
+| Departure | Pace | Win rate | Usually lost to |
+|---|---|---|---|
+| March | strenuous | **51%** | the Sierra buries you |
+| April | strenuous | **81%** | mixed |
+| May | strenuous | **55%** | the snow line catches you |
+| May | grueling | **34%** | grueling costs more health than it buys |
+| June | strenuous | **2%** | snowed off, almost always |
+
+Grueling being *worse* than strenuous is deliberate, and it is asserted by a test.
 
 <img src="docs/screenshots/trail.png" width="860" alt="The trail HUD" />
 
@@ -155,7 +176,8 @@ northbound/
 │   └── ui/                screen router, HUD, and one module per screen
 ├── scripts/
 │   ├── bake-assets.mjs    generates every sprite
-│   └── playtest.mjs       headless full playthrough
+│   ├── playtest.mjs       headless full playthrough
+│   └── shots.mjs          visual QA: the scene across every biome/time/weather
 └── test/                  node --test
 ```
 
@@ -166,10 +188,17 @@ nothing. That is why the same simulation can be unit-tested in Node and driven b
 
 ## 🧪 Verification
 
+`npm test` runs 107 assertions over the data tables, the simulation and the DOM helper.
+
 `npm run playtest` boots the real server, opens the real game in Chromium, sets up a crew, outfits them,
 and plays until the run ends — clicking through landmarks, buying food when it runs low, crossing rivers,
 foraging, and resolving events — while failing the build on **any** console error, page error or failed
 request. The screenshots in this README are its output.
+
+`node scripts/shots.mjs` renders the scene across all seven biomes × four times of day × the weather
+set, plus a labelled contact sheet of every sprite in the atlas, so the art can be reviewed by eye.
+That pass is what caught the flat ridgelines: the terrain hash relied on 32-bit multiply overflow,
+which JavaScript does not give you, so the value noise had been returning a constant.
 
 ---
 

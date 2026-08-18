@@ -58,7 +58,7 @@ async function main() {
       '--disable-dev-shm-usage',
     ],
   });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 2 });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1.5 });
 
   page.on('console', (m) => {
     const type = m.type();
@@ -207,7 +207,8 @@ async function run(page) {
   await shot(page, 'trail');
 
   log('play the run');
-  const maxTurns = QUICK ? 40 : 260;
+  const turnsArg = process.argv.find((a) => a.startsWith('--turns='));
+  const maxTurns = turnsArg ? Number(turnsArg.slice(8)) : (QUICK ? 40 : 400);
   let lastMile = -1, stuck = 0, forded = 0, foraged = 0, events = 0, landmarks = 0;
 
   let lastReport = Date.now();
@@ -240,7 +241,7 @@ async function run(page) {
         await page.locator('#screen-event #event-choices .btn').first().click().catch(() => {});
       }
       await sleep(220);
-      await clickText(page, 'Onward', { timeout: 4000, optional: true });
+      await clickText(page, 'Onward', { timeout: 2500, optional: true });
       continue;
     }
 
@@ -312,12 +313,12 @@ async function run(page) {
         (fromDay) => {
           const g = window.NB && window.NB.game;
           if (!g) return true;
-          return g.day >= fromDay + 3
+          return g.day >= fromDay + 2
             || g.status !== 'playing'
             || (window.NB.screen && window.NB.screen !== 'trail');
         },
         state.day,
-        { timeout: 6000, polling: 100 },
+        { timeout: 3500, polling: 80 },
       ).catch(() => {});
       continue;
     }
