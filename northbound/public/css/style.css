@@ -193,6 +193,8 @@ kbd {
 }
 .panel.narrow { width: min(560px, 94vw); }
 .panel.wide   { width: min(1040px, 97vw); }
+/* For the map, which is only useful at size. */
+.panel.huge   { width: min(1980px, 99vw); max-height: 97vh; padding: clamp(14px, 1.6vw, 22px); }
 .panel::after { /* corner ticks, cheap "pixel frame" flourish */
   content: ''; position: absolute; inset: 5px; pointer-events: none;
   border: 1px solid rgba(242, 201, 138, .10); border-radius: 3px;
@@ -476,6 +478,9 @@ body.on-trail .journal { visibility: visible; }
   width: auto; height: auto;
   max-width: 100%; max-height: 52vh;
 }
+/* The map sizes its own backing store to the window, so it should not then be scaled
+   back down by a height cap meant for the fixed-size game canvases. */
+.panel.huge .map-canvas { max-height: none; }
 
 .scroller { max-height: 46vh; overflow-y: auto; padding-right: 6px; }
 .scroller::-webkit-scrollbar { width: 8px; }

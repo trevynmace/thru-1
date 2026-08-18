@@ -11,10 +11,21 @@ import { itemIcon, memberSprite } from './icons.js';
 
 export function map(ctx) {
   const g = ctx.game;
-  const canvas = el('canvas.map-canvas', { width: 640, height: 300 });
+  // The map is the one screen where more pixels are strictly more useful — 2,650 miles
+  // of profile and twenty-eight pins do not fit in a postcard. Take the window.
+  const canvas = el('canvas.map-canvas', { width: 1280, height: 600 });
   const detail = el('div.prose.small');
   let selected = null;
   let raf = 0;
+
+  function fit() {
+    const w = Math.max(640, Math.min(1900, Math.round(window.innerWidth - 96)));
+    const h = Math.max(300, Math.min(920, Math.round(window.innerHeight - 300)));
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+  }
+  fit();
+  window.addEventListener('resize', fit);
 
   Audio.sfx('map_open');
 
@@ -77,8 +88,8 @@ export function map(ctx) {
   );
 
   return {
-    node: panel({ title: 'The trail', meta: `Day ${g.day}`, body, foot: button('Close', () => ctx.close(), { cls: 'primary' }), cls: 'wide' }),
-    unmount: () => cancelAnimationFrame(raf),
+    node: panel({ title: 'The trail', meta: `Day ${g.day}`, body, foot: button('Close', () => ctx.close(), { cls: 'primary' }), cls: 'huge' }),
+    unmount: () => { cancelAnimationFrame(raf); window.removeEventListener('resize', fit); },
   };
 }
 

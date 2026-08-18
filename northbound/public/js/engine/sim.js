@@ -94,8 +94,12 @@ export const BALANCE = {
   luxuryHealthCap: 0.9,
 
   // --- ailments ---
-  onsetDivisor: 900,       // p = (100 - health) / divisor, per living member per day
-  onsetFloor: 0.004,
+  // Interruptions are spaced out now, which means fewer cards over a season and less
+  // of the attrition they used to carry. That slack goes here rather than back into
+  // the pacing: a long trail wears people down whether or not anything happens to
+  // them, and illness is the continuous version of the thing the cards were doing.
+  onsetDivisor: 760,       // p = (100 - health) / divisor, per living member per day
+  onsetFloor: 0.006,
   onsetWeatherBonus: 0.030,
   onsetAltitudeBonus: 0.022,
   onsetStarveBonus: 0.045,
@@ -162,7 +166,12 @@ export const BALANCE = {
   snowCloseDay: 6,         // ...November 6. Everything upstream is integrated from here.
 
   // --- events ---
-  eventChance: 0.28,       // SPEC §5.2 step 12
+  // The per-day roll, and the quiet stretch that has to pass first. Without the quiet
+  // stretch a 28% roll bunches: the trail becomes walk-two-days-read-a-card over and
+  // over, and neither the walking nor the cards get room to land. Any stop resets it —
+  // a town, a river, a card — so there is always some country between interruptions.
+  eventChance: 0.45,       // SPEC §5.2 step 12
+  eventQuietDays: 4,       // days of uninterrupted walking owed after any stop
 
   // --- economy ---
   sellRatio: 0.5,
@@ -372,6 +381,7 @@ export function newGame(opts = {}) {
     atLandmark: LANDMARKS[0]?.id ?? null,
     pendingFord: null,
     firedEvents: [],
+    lastStopDay: 0,
     starving: false,
     log: [],
     status: 'playing',
@@ -708,6 +718,7 @@ export function advanceDay(g) {
       const idx = LANDMARKS.indexOf(arrivedLm);
       if (idx >= 0) g.landmarkIndex = idx;
       rep.arrived = arrivedLm;
+      g.lastStopDay = g.day;
       rep.lines.push(logLine(g, 'landmark', `You reach ${arrivedLm.name} (mile ${arrivedLm.mile}).`));
       const bump = arrivedLm.kind === 'town' ? BALANCE.spiritTown : BALANCE.spiritLandmark;
       for (const m of livingParty(g)) m.spirit = clamp(m.spirit + bump, 0, 100);
@@ -1166,6 +1177,7 @@ function gearFailure(g, rep) {
 }
 
 function fireEvent(g, rep) {
+  if (g.day - (g.lastStopDay ?? -99) < BALANCE.eventQuietDays) return;
   if (!chance(g.rng, BALANCE.eventChance)) return;
   let ev = null;
   try { ev = rollEvent(g, g.rng); } catch { ev = null; }
@@ -1174,6 +1186,7 @@ function fireEvent(g, rep) {
   if (!g.firedEvents) g.firedEvents = [];
   g.firedEvents.push(ev.id);
   g.stats.eventsSurvived += 1;
+  g.lastStopDay = g.day;
   rep.event = ev;
   rep.lines.push(logLine(g, 'event', fillTemplate(g, ev.title ? `${ev.title}: ${ev.text || ''}` : (ev.text || ''))));
 
@@ -1263,6 +1276,10 @@ function passDays(g, n, { resting = true, reason = 'rest' } = {}) {
     out.deaths.push(...rep.deaths);
     out.recoveries.push(...rep.recoveries);
   }
+  // A day not spent walking is a day the trail owes back. Camping, crossing a river,
+  // sitting out a delay — all of them push the quiet stretch along with the calendar,
+  // otherwise a two-day ford quietly eats two thirds of the gap before the next card.
+  if (count > 0) g.lastStopDay = Math.max(num(g.lastStopDay, 0), g.day);
   out.ended = g.status !== 'playing';
   syncRng(g);
   return out;

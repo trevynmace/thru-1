@@ -200,3 +200,72 @@ test('parity: the occupation multiplier is applied to the total', () => {
   assert.ok(high.total > low.total,
     `the higher multiplier (${high.id}) should out-score the lower (${low.id})`);
 });
+
+// The 1990 game does not hand you a card every other day. It gives you a stretch of
+// road, then something happens. Without a floor under the gap, a per-day roll bunches
+// into walk-two-days-read-a-card, and neither half gets room to land.
+test('parity: the trail gives you a quiet stretch between interruptions', () => {
+  const quiet = BALANCE.eventQuietDays;
+  assert.ok(quiet >= 3, 'the quiet stretch should be at least three days');
+
+  let events = 0;
+  let violations = 0;
+  const stopGaps = [];        // every interruption, of any kind — what a player feels
+
+  for (let seed = 0; seed < 25; seed++) {
+    const g = newGame({ seed: 900 + seed, occupation: 'ranger', month: 4 });
+    buy(g, 'food', 300, 1);
+    buy(g, 'stove_fuel', 8, 1);
+    let lastStop = 0;
+    let lastEvent = null;
+
+    for (let d = 0; d < 90 && g.status === 'playing'; d++) {
+      const rep = advanceDay(g);
+      if (g.supplies.food < 90) buy(g, 'food', 120, 1);
+      if (g.pendingFord) resolveFord(g, 'shuttle', { success: true, severity: 0, log: [] });
+      if (!rep.event && !rep.arrived) continue;
+
+      stopGaps.push(g.day - lastStop);
+      lastStop = g.day;
+
+      if (rep.event) {
+        events++;
+        // An event must never land inside the stretch owed by the last interruption,
+        // whatever that interruption was — a town counts, and so does a river.
+        if (lastEvent !== null && g.day - lastEvent < quiet) violations++;
+        lastEvent = g.day;
+      }
+    }
+  }
+
+  assert.ok(events > 40, `expected a decent sample of events, got ${events}`);
+  assert.equal(violations, 0, `${violations} events fired inside the ${quiet}-day quiet stretch`);
+
+  // Arrivals interleave with events, so the number that matters is how often the game
+  // stops you at all. Too tight and it is a ticker tape; too loose and it is a walk.
+  const mean = stopGaps.reduce((a, b) => a + b, 0) / stopGaps.length;
+  assert.ok(mean >= 2.5 && mean <= 7,
+    `the trail interrupts every ${mean.toFixed(1)} days — outside the 2.5-7 day band`);
+});
+
+// An arrival is an interruption too, so a town must not be immediately followed by a
+// card: walking into Idyllwild and being handed an event on the same breath is exactly
+// the pile-up the quiet stretch exists to prevent.
+test('parity: a landmark buys you the same quiet stretch an event does', () => {
+  for (let seed = 0; seed < 25; seed++) {
+    const g = newGame({ seed: 1300 + seed, occupation: 'ranger', month: 4 });
+    buy(g, 'food', 300, 1);
+    let arrivedDay = null;
+
+    for (let d = 0; d < 90 && g.status === 'playing'; d++) {
+      const rep = advanceDay(g);
+      if (g.supplies.food < 90) buy(g, 'food', 120, 1);
+      if (g.pendingFord) resolveFord(g, 'shuttle', { success: true, severity: 0, log: [] });
+      if (rep.arrived) { arrivedDay = g.day; continue; }
+      if (rep.event && arrivedDay !== null) {
+        assert.ok(g.day - arrivedDay >= BALANCE.eventQuietDays,
+          `an event fired ${g.day - arrivedDay} days after a landmark (seed ${1300 + seed})`);
+      }
+    }
+  }
+});
