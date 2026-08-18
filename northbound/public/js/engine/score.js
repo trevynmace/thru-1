@@ -19,6 +19,7 @@ export const POINTS = {
   perFoodLb: 1 / 25,
   perSparePart: 2,
   perClothing: 2,
+  perFuel: 2,          // leftover stove fuel, the way Oregon Trail counts leftover bullets
   perDollar: 1 / 5,
   perMile: 1 / 50,
   finishBonus: 400,
@@ -80,6 +81,9 @@ export function scoreGame(g) {
 
   const clothes = qtyOf(g, 'clothing') + qtyOf(g, 'puffy');
   add('Clothing', clothes, clothes * POINTS.perClothing);
+
+  const fuel = qtyOf(g, 'stove_fuel');
+  add('Stove fuel', fuel, fuel * POINTS.perFuel);
 
   const cash = qtyOf(g, 'money');
   add('Cash on hand', Math.round(cash * 100) / 100, cash * POINTS.perDollar);

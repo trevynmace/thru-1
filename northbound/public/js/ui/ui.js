@@ -37,6 +37,8 @@ const SCREENS = {
   trade: ScreenTravel.trade,
   ford: ScreenTravel.ford,
   forage: ScreenTravel.forage,
+  pace: ScreenTravel.pace,
+  rations: ScreenTravel.rations,
   map: ScreenInfo.map,
   pack: ScreenInfo.pack,
   party: ScreenInfo.party,
@@ -49,7 +51,7 @@ const OVERLAY_SCREENS = new Set([
   'settings', 'help', 'scores',
   // The minigame screens are modal too: their intro/outcome panels sit over the HUD,
   // and Esc has to be able to back out of them like any other panel.
-  'ford', 'forage',
+  'ford', 'forage', 'pace', 'rations',
 ]);
 
 // Music selection per biome, for the travel screen.
@@ -316,7 +318,13 @@ function stepTravel() {
   if (report.arrived) {
     setTravelling(false);
     Audio.sfx('arrive');
-    setTimeout(() => go('landmark', { landmark: report.arrived }), 420);
+    // A river is not a menu item: The Oregon Trail stops you at the bank and makes you
+    // choose how to cross before anything else, so arriving at a ford opens it directly.
+    const toFord = report.arrived.ford && g.pendingFord;
+    setTimeout(
+      () => go(toFord ? 'ford' : 'landmark', { landmark: report.arrived }),
+      toFord ? 520 : 420,
+    );
     return;
   }
 
@@ -444,7 +452,13 @@ function renderReadout(g) {
   const node = $('#hud-readout'); if (!node) return;
   const s = g.supplies;
   const foodDays = Math.floor(s.food / Math.max(1, livingCount(g) * Sim.RATIONS[g.rations].lbPerDay));
+  // Oregon Trail reports one word for the whole party's health; the per-member detail
+  // lives in the crew chips below.
+  const partyHealth = Sim.meanHealth(g);
+  const healthCls = partyHealth > 78 ? 'good' : partyHealth > 55 ? '' : partyHealth > 32 ? 'warn' : 'bad';
+
   mountTo(node,
+    el('span', 'Health ', el('b', { class: healthCls }, healthWord(partyHealth))),
     el('span', 'Food ', el('b', { class: foodDays < 4 ? 'bad' : foodDays < 9 ? 'warn' : '' }, `${Math.round(s.food)} lb`),
       el('span.faint', ` (${foodDays}d)`)),
     el('span', 'Cash ', el('b', '$' + Math.round(s.money).toLocaleString('en-US'))),
@@ -452,6 +466,7 @@ function renderReadout(g) {
     el('span', 'Cart ', el('b', { class: g.cart.condition < 30 ? 'bad' : '' }, Math.round(g.cart.condition) + '%')),
     el('span', 'Pace ', el('b', Sim.PACES[g.pace].label || g.pace)),
     el('span', 'Rations ', el('b', Sim.RATIONS[g.rations].label || g.rations)),
+    el('span', 'Fuel ', el('b', { class: (s.stove_fuel || 0) < 1 ? 'bad' : '' }, String(Math.round(s.stove_fuel || 0)))),
     el('span', 'Day ', el('b', String(g.day))),
   );
 }
@@ -461,7 +476,9 @@ function renderCrew(g) {
   mountTo(node, g.party.map((m) => {
     const cls = !m.alive ? 'bad' : m.health > 70 ? '' : m.health > 45 ? 'fair' : m.health > 22 ? 'poor' : 'bad';
     return el('div.crew-chip' + (m.alive ? '' : '.dead'), {
-      title: m.alive ? `${healthWord(m.health)}${m.ailments.length ? ' — ' + m.ailments.map((a) => a.id).join(', ') : ''}` : 'Off trail',
+      title: m.alive
+        ? `${healthWord(m.health)}${m.ailments.length ? ' — ' + m.ailments.map((a) => a.id.replace(/[_-]+/g, ' ')).join(', ') : ''}`
+        : 'Off trail',
     }, el('i.pip' + (cls ? '.' + cls : '')), m.trailName || m.name);
   }));
 }
@@ -476,10 +493,12 @@ function renderActions(g) {
     travelling
       ? b('Stop  [space]', () => setTravelling(false), { cls: 'danger' })
       : b('Continue on the trail  [space]', () => setTravelling(true), { cls: 'primary' }),
-    b('Camp  [R]', () => go('camp')),
+    b('Rest  [R]', () => go('camp')),
     b('Map  [M]', () => go('map')),
-    b('Pack  [I]', () => go('pack')),
+    b('Supplies  [I]', () => go('pack')),
     b('Crew  [C]', () => go('party')),
+    b('Pace  [P]', () => go('pace')),
+    b('Rations  [T]', () => go('rations')),
     b('Forage  [F]', () => go('forage')),
     b('Menu  [Esc]', () => go('settings')),
   );
@@ -614,6 +633,8 @@ function wireGlobalKeys() {
         case 'c': e.preventDefault(); go('party'); return;
         case 'f': e.preventDefault(); go('forage'); return;
         case 'r': e.preventDefault(); go('camp'); return;
+        case 'p': e.preventDefault(); go('pace'); return;
+        case 't': e.preventDefault(); go('rations'); return;
         case 'escape': e.preventDefault(); go('settings'); return;
       }
     } else if (key === 'escape' && OVERLAY_SCREENS.has(state.screen) && state.screen !== 'event') {

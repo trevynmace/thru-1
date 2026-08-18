@@ -24,6 +24,7 @@ const BASE = `http://localhost:${PORT}`;
 
 const QUICK = process.argv.includes('--quick');
 const HEADED = process.argv.includes('--headed');
+const TIMING = process.argv.includes('--timing');
 
 const problems = [];
 let step = 0;
@@ -128,7 +129,7 @@ async function clickText(page, text, { timeout = 8000, optional = false } = {}) 
   const locator = page.locator(`${scope} button:has-text("${text}"), ${scope} .btn:has-text("${text}")`).first();
   try {
     await locator.waitFor({ state: 'visible', timeout });
-    await locator.click();
+    await locator.click({ timeout });
     await sleep(180);
     return true;
   } catch (err) {
@@ -174,7 +175,7 @@ async function run(page) {
   log('set up a crew');
   await clickText(page, 'Begin the trail');
   await page.waitForSelector('#screen-setup.active');
-  await page.locator('#screen-setup .card').nth(2).click();     // an occupation
+  await page.locator('#screen-setup .card').nth(2).click({ timeout: 5000 });   // an occupation
   await clickText(page, 'Roll new names', { optional: true });
   await sleep(150);
   await shot(page, 'setup');
@@ -212,11 +213,14 @@ async function run(page) {
   let lastMile = -1, stuck = 0, forded = 0, foraged = 0, events = 0, landmarks = 0;
 
   let lastReport = Date.now();
+  let turnStart = Date.now();
   for (let turn = 0; turn < maxTurns; turn++) {
     const state = await gameState(page);
-    if (Date.now() - lastReport > 20000) {
+    const took = Date.now() - turnStart;
+    turnStart = Date.now();
+    if (TIMING || Date.now() - lastReport > 20000) {
       lastReport = Date.now();
-      console.log(`      … turn ${turn}: day ${state?.day} mile ${state?.mile} on "${await activeScreen(page)}"`);
+      console.log(`      … turn ${turn}: ${took}ms  day ${state?.day} mile ${state?.mile} on "${await activeScreen(page)}"`);
     }
     if (!state) { fail('lost the game state mid-run'); break; }
     if (state.status !== 'playing') {
@@ -238,7 +242,7 @@ async function run(page) {
       events++;
       if (events === 1) await shot(page, 'event');
       if (!await clickText(page, 'See what happens', { timeout: 1200, optional: true })) {
-        await page.locator('#screen-event #event-choices .btn').first().click().catch(() => {});
+        await page.locator('#screen-event #event-choices .btn').first().click({ timeout: 2000 }).catch(() => {});
       }
       await sleep(220);
       await clickText(page, 'Onward', { timeout: 2500, optional: true });
@@ -254,7 +258,7 @@ async function run(page) {
         forded++;
         await sleep(250);
         if (forded === 1) await shot(page, 'ford');
-        await page.locator('#screen-ford .menu-numbered .btn').nth(Math.min(4, forded % 5)).click().catch(() => {});
+        await page.locator('#screen-ford .menu-numbered .btn').nth(Math.min(4, forded % 5)).click({ timeout: 3000 }).catch(() => {});
         await sleep(1400);                       // let the crossing get going
         for (let k = 0; k < 3; k++) { await page.keyboard.press('Escape'); await sleep(350); }
         await clickText(page, 'Onward', { timeout: 6000, optional: true });
@@ -345,8 +349,42 @@ async function run(page) {
     await sleep(200);
   }
 
+  // If the bounded run has not ended naturally, drive the last stretch so the ending,
+  // the score tally and the register all get exercised for real.
+  let finalState = await gameState(page);
+  if (finalState && finalState.status === 'playing') {
+    log(`forcing the finish from mile ${finalState.mile} to exercise the ending`);
+    await page.evaluate(() => {
+      const g = window.NB.game;
+      g.mile = 2610;                       // just short of the northern terminus
+      g.supplies.food = Math.max(g.supplies.food, 120);
+      window.NB.ctx.refreshHud();
+    });
+    for (let i = 0; i < 30; i++) {
+      const st = await gameState(page);
+      if (!st || st.status !== 'playing') break;
+      const screen = await activeScreen(page);
+      if (screen === 'event') {
+        if (!await clickText(page, 'See what happens', { timeout: 1200, optional: true })) {
+          await page.locator('#screen-event #event-choices .btn').first().click({ timeout: 2000 }).catch(() => {});
+        }
+        await clickText(page, 'Onward', { timeout: 2500, optional: true });
+      } else if (screen === 'landmark') {
+        await page.keyboard.press('1');
+        await sleep(300);
+      } else if (screen === 'trail') {
+        const moving = await page.evaluate(() => !!(window.NB && window.NB.isTravelling()));
+        if (!moving) await page.keyboard.press(' ');
+        await sleep(900);
+      } else {
+        await page.keyboard.press('Escape');
+        await sleep(250);
+      }
+    }
+  }
+
   log('reach the end screen');
-  const finalState = await gameState(page);
+  finalState = await gameState(page);
   if (finalState && finalState.status !== 'playing') {
     await page.waitForSelector('#screen-end.active', { timeout: 12000 }).catch(() => fail('end screen never appeared'));
     await sleep(500);

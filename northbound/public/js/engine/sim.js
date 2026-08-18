@@ -158,7 +158,12 @@ export const BALANCE = {
   haggleMult: 0.9,
 
   // --- foraging ---
+  // The Oregon Trail's hunting needs bullets: a purchasable, consumable, scoreable
+  // resource that gates your ability to feed the party. Foraging needs stove fuel for
+  // the same reason — without it you can only carry back what the crew can eat raw.
   forageCapLb: 100,
+  forageFuelPerTrip: 1,
+  forageNoFuelYield: 0.45,
 };
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
@@ -1543,12 +1548,32 @@ export function forageCap(g) {
 }
 
 /** Fold a forage minigame result into the game. Costs one day (SPEC §5.5). */
+/** Whether the crew can cook what they bring back, and what that costs them if not. */
+export function forageFuel(g) {
+  const have = getQty(g, 'stove_fuel');
+  return { have, enough: have >= BALANCE.forageFuelPerTrip, penalty: BALANCE.forageNoFuelYield };
+}
+
 export function applyForageResult(g, lbs) {
-  const out = { ok: false, lbs: 0, lines: [], ended: false };
+  const out = { ok: false, lbs: 0, lines: [], ended: false, usedFuel: false, rawOnly: false };
   try {
     if (!g || g.status !== 'playing') return out;
     const bonus = num(perk(g, 'forageBonus', 1), 1);
-    const got = Math.max(0, Math.min(BALANCE.forageCapLb, Math.round(num(lbs) * bonus)));
+
+    // Fuel is this game's ammunition: spend it, or bring back far less.
+    const fuel = forageFuel(g);
+    let yieldMult = 1;
+    if (fuel.enough) {
+      setQty(g, 'stove_fuel', fuel.have - BALANCE.forageFuelPerTrip);
+      out.usedFuel = true;
+    } else {
+      yieldMult = BALANCE.forageNoFuelYield;
+      out.rawOnly = true;
+      out.lines.push(logLine(g, 'travel',
+        'No fuel left to cook with, so most of the haul has to be left where it grew.'));
+    }
+
+    const got = Math.max(0, Math.min(BALANCE.forageCapLb, Math.round(num(lbs) * bonus * yieldMult)));
     g.supplies.food = round2(num(g.supplies.food) + got);
     g.stats.lbsForaged = round2(g.stats.lbsForaged + got);
     recomputeLoad(g);

@@ -1400,6 +1400,16 @@ function txt(g, D, str, x, y, o) {
   fbText(g, str, x, y, o);
 }
 
+/** Width of a string in the 5x7 bitmap font, including the 1px advance. */
+const CHAR_ADV = 6;
+function txtW(D, str, scale = 1) {
+  const T = D && D.text;
+  if (T && typeof T.measureText === 'function') {
+    try { return T.measureText(String(str), scale); } catch { /* fall through */ }
+  }
+  return String(str).length * CHAR_ADV * scale;
+}
+
 function drawHud(g, S, D) {
   // top bar
   g.fillStyle = rgba(PANEL, 0.88);
@@ -1407,9 +1417,10 @@ function drawHud(g, S, D) {
   g.fillStyle = EDGE;
   g.fillRect(0, 13, BASE_W, 1);
 
-  txt(g, D, 'PACK', 4, 4, { color: INK_DIM, scale: 1 });
-  // 100px bar = 1px per pound
-  const bx = 22, bw = 100;
+  const packLabel = 'PACK';
+  txt(g, D, packLabel, 4, 4, { color: INK_DIM, scale: 1 });
+  // 100px bar = 1px per pound, starting clear of the label
+  const bx = 4 + txtW(D, packLabel) + 4, bw = 100;
   g.fillStyle = rgba(NIGHT, 0.8);
   g.fillRect(bx - 1, 3, bw + 2, 7);
   g.fillStyle = mix(NIGHT, EDGE, 0.5);
@@ -1435,9 +1446,12 @@ function drawHud(g, S, D) {
   const m = Math.floor(left / 60), s = Math.floor(left % 60);
   const low = left <= 10;
   const tc = low ? (Math.floor(S.t * 6) % 2 ? RUST : GOLD) : INK;
-  txt(g, D, `${m}:${s < 10 ? '0' : ''}${s}`, BASE_W - 4, 4, { color: tc, align: 'right', scale: 1 });
+  const clock = `${m}:${s < 10 ? '0' : ''}${s}`;
+  // Draw from a measured left edge: not every text backend honours align.
+  const clockX = BASE_W - 4 - txtW(D, clock);
+  txt(g, D, clock, clockX, 4, { color: tc, scale: 1 });
   g.fillStyle = low ? RUST : INK_DIM;
-  g.fillRect(BASE_W - 34, 5, 1, 3);
+  g.fillRect(clockX - 5, 5, 1, 3);
   g.fillRect(BASE_W - 34, 8, 3, 1);
 
   // banners
@@ -1479,9 +1493,13 @@ function drawHint(g, S, D) {
   g.fillRect(x, y, w, 18);
   g.fillStyle = EDGE;
   g.fillRect(x, y, w, 1); g.fillRect(x, y + 17, w, 1);
-  txt(g, D, 'ARROWS/WASD MOVE', x + 6, y + 3, { color: INK, scale: 1 });
-  txt(g, D, 'SPACE GATHER', x + 84, y + 3, { color: GOLD, scale: 1 });
-  txt(g, D, 'ESC BACK', x + 152, y + 3, { color: INK_DIM, scale: 1 });
+  // Flow the three hints left to right off their measured widths so they cannot
+  // overlap each other however the labels are worded.
+  let hx = x + 6;
+  for (const [label, colour] of [['ARROWS MOVE', INK], ['SPACE GATHER', GOLD], ['ESC BACK', INK_DIM]]) {
+    txt(g, D, label, hx, y + 3, { color: colour, scale: 1 });
+    hx += txtW(D, label) + 7;
+  }
   txt(g, D, 'BERRIES, MUSHROOMS, TROUT. WATCH THE BEAR.', x + 6, y + 11, { color: INK_DIM, scale: 1 });
   g.globalAlpha = 1;
 }

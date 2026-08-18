@@ -4,6 +4,12 @@ import { Audio } from '../../audio/audio.js';
 import { TOTAL_MILES } from '../../../../data/trail.js';
 import { memberSprite } from './icons.js';
 
+/** Causes are stored as ailment ids; nobody wants to read "stress_fracture". */
+function causeLabel(cause) {
+  if (!cause) return 'left the trail';
+  return String(cause).replace(/[_-]+/g, ' ');
+}
+
 const ENDINGS = {
   won: {
     title: 'The Northern Terminus',
@@ -81,7 +87,7 @@ export function end(ctx, params = {}) {
           ? el('div.stack', lost.map((m) => el('div.row',
               memberSprite(m, 40),
               el('div.grow', el('div.name.faint', m.name),
-                el('div.sub', `${m.causeOfDeath || 'left the trail'} · mile ${fmtNum(Math.round(m.diedMile || 0))}`),
+                el('div.sub', `${causeLabel(m.causeOfDeath)} · mile ${fmtNum(Math.round(m.diedMile || 0))}`),
                 m.epitaph ? el('div.sub.faint', `“${m.epitaph}”`) : null),
             )))
           : null,

@@ -35,8 +35,9 @@ const TIER = {
     'stove_fuel', 'water_carry',
   ],
 
-  // A hiker box and a vending machine. Calories and whatever somebody left behind.
-  scrap: ['food', 'electrolytes', 'blister_kit'],
+  // A hiker box and a vending machine. Calories, fuel and whatever somebody left
+  // behind — fuel is on every shelf, because being unable to cook is a dead end.
+  scrap: ['food', 'stove_fuel', 'electrolytes', 'blister_kit'],
 };
 
 // Stores that carry the Sierra-entry kit no matter their size — this is where the

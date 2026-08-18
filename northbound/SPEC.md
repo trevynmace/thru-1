@@ -402,9 +402,23 @@ In this order, always:
 13. Win when `mile >= TOTAL_MILES` ⇒ `status='won'`.
 
 ### 5.3 Landmark / town menu
-Options (Oregon Trail parity): **Continue on the trail**, **Check supplies**, **Look at
-map**, **Change pace**, **Change rations**, **Stop to rest (n days)**, **Attempt to
-forage**, **Trade with hikers**, **Talk to people**, **Buy supplies** (stores only).
+The Oregon Trail's menu, in its order — this list and its ordering are a requirement,
+not a suggestion, and `test/oregon-trail-parity.test.js` pins the pieces of it that the
+engine owns:
+
+1. Continue on the trail
+2. Check supplies
+3. Look at the map
+4. Change pace
+5. Change food rations
+6. Stop to rest
+7. Attempt to trade
+8. Talk to people
+9. Buy supplies *(stores only)*
+
+River crossings are **not** menu items: arriving at a ford opens the crossing directly,
+the way the original stops you at the bank. Foraging is reached from the trail HUD on
+any day, matching where "Hunt" sits in the original.
 
 ### 5.4 Fords
 At a `ford` landmark, offer: **Ford it** (fast, risks losing supplies/mules/a member —
@@ -417,6 +431,12 @@ nights; snowmelt fords are lower in the morning). Implemented as a short **minig
 ### 5.5 Foraging (the "hunting" minigame)
 Costs 1 day. Yields `lbs` of food capped by what the crew can carry back (100 lb) and by
 the landmark's `forage` quality. Playable 2D minigame (§7.1).
+
+**Gated by a consumable, exactly as hunting is gated by bullets.** A trip out spends one
+canister of `stove_fuel`; with none left the crew can only bring back what they can eat
+raw (`BALANCE.forageNoFuelYield`). Fuel is therefore a real store decision, is stocked at
+every store on the trail, and leftover fuel scores points at the end like leftover
+ammunition does.
 
 ### 5.6 Occupation perks
 `fordBonus` (added to ford success chance), `weatherForecast` (UI shows tomorrow's

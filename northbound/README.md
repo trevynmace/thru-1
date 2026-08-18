@@ -39,6 +39,8 @@ snow line closing in behind you — and rebuilds it as a **faithful Oregon Trail
 | Filling / meager / bare-bones rations | Same three, still 3 / 2 / 1 lb per person per day |
 | Ford, caulk, ferry or wait at the river | Wade, rock-hop, pack-raft, pay a shuttle, or camp and cross at dawn |
 | Hunt buffalo, carry 100 lb back | Forage berries, mushrooms and fish, carry 100 lb back |
+| Hunting needs bullets you buy at a fort | Foraging needs stove fuel you buy at a store — and leftovers score |
+| Menu: continue / supplies / map / pace / rations / rest / trade / talk / buy | The same nine, in the same order |
 | Dysentery, measles, typhoid | Giardia, norovirus, hypothermia, stress fracture, snakebite |
 | Reach Oregon before winter | Reach Manning Park before the snow line catches you |
 | Leave in March vs July | Leave in March vs June — and the Sierra snowpack is the price of leaving early |
@@ -188,7 +190,11 @@ nothing. That is why the same simulation can be unit-tested in Node and driven b
 
 ## 🧪 Verification
 
-`npm test` runs 107 assertions over the data tables, the simulation and the DOM helper.
+`npm test` runs 120 assertions over the data tables, the simulation, the DOM helper and
+**Oregon Trail parity** — `test/oregon-trail-parity.test.js` pins the three-by-three
+pace/ration grid at 3/2/1 lb a head, the money-versus-score tradeoff on the occupation,
+foraging being gated behind a purchasable consumable, the five river-crossing options,
+and what the final tally counts.
 
 `npm run playtest` boots the real server, opens the real game in Chromium, sets up a crew, outfits them,
 and plays until the run ends — clicking through landmarks, buying food when it runs low, crossing rivers,

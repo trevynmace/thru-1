@@ -15,21 +15,24 @@ export function landmark(ctx, params = {}) {
     ? params.landmark
     : LANDMARKS.find((l) => l.id === (params.landmark || g.atLandmark)) || LANDMARKS[0];
 
+  // The Oregon Trail's landmark menu, in its order. Only the last entry is
+  // conditional (forts/stores), and river crossings are prompted on arrival rather
+  // than listed, exactly as they are in the original.
   const options = [];
   const opt = (label, fn, hint) => options.push({ label, fn, hint });
 
   opt('Continue on the trail', () => { ctx.close(); ctx.setTravelling(true); });
-  if (lm.ford) opt(`Cross ${lm.ford.name}`, () => ctx.go('ford', { landmark: lm }));
-  if (lm.store) opt('Buy supplies', () => ctx.go('store', { landmark: lm }));
   opt('Check supplies', () => ctx.go('pack'));
   opt('Look at the map', () => ctx.go('map'));
-  opt('Look after the crew', () => ctx.go('party'));
-  opt('Rest here', () => ctx.go('camp', { landmark: lm }));
-  opt('Try to forage', () => ctx.go('forage', { landmark: lm }));
-  opt('Trade with hikers', () => ctx.go('trade', { landmark: lm }));
+  opt('Change pace', () => ctx.go('pace', { landmark: lm }));
+  opt('Change food rations', () => ctx.go('rations', { landmark: lm }));
+  opt('Stop to rest', () => ctx.go('camp', { landmark: lm }));
+  opt('Attempt to trade', () => ctx.go('trade', { landmark: lm }));
   opt('Talk to people', () => ctx.go('talk', { landmark: lm }));
+  if (lm.store) opt('Buy supplies', () => ctx.go('store', { landmark: lm }));
+  if (lm.ford) opt(`Cross ${lm.ford.name}`, () => ctx.go('ford', { landmark: lm }));
 
-  const menu = el('div.menu-numbered', options.slice(0, 9).map((o, i) => el('button.btn.wide', {
+  const menu = el('div.menu-numbered', options.slice(0, 10).map((o, i) => el('button.btn.wide', {
     type: 'button', dataset: { key: String(i + 1) },
     onclick: () => { Audio.sfx('select'); o.fn(); },
   }, `${i + 1}. ${o.label}`, o.hint && el('span.hint', o.hint))));
@@ -68,6 +71,74 @@ export function landmark(ctx, params = {}) {
       cls: 'wide',
     }),
   };
+}
+
+// -------------------------------------------------- pace & rations ----
+
+/**
+ * The Oregon Trail presents pace and rations as their own numbered sub-menus with a
+ * short description of each setting, so they get their own screens here too rather
+ * than being buried in the crew panel.
+ */
+function chooser(ctx, { title, meta, blurb, options, current, apply, params }) {
+  const back = () => (params.landmark ? ctx.go('landmark', { landmark: params.landmark }) : ctx.close());
+
+  const list = el('div.menu-numbered', options.map((o, i) => el('button.btn.wide', {
+    type: 'button', dataset: { key: String(i + 1) },
+    onclick: () => {
+      Audio.sfx('select');
+      apply(o.value);
+      ctx.refreshHud();
+      ctx.toast(`${title}: ${o.label}`, 'good');
+      back();
+    },
+  },
+    `${i + 1}. ${o.label}${o.value === current ? '   (current)' : ''}`,
+    el('span.hint', o.hint),
+  )));
+
+  return {
+    node: panel({
+      title, meta,
+      body: el('div', el('p.prose', blurb), el('hr.divider'), list),
+      foot: button('Never mind', back, { cls: 'ghost' }),
+      cls: 'narrow',
+    }),
+  };
+}
+
+export function pace(ctx, params = {}) {
+  const g = ctx.game;
+  return chooser(ctx, {
+    title: 'Change pace',
+    meta: `Currently ${ctx.Sim.PACES[g.pace].label.toLowerCase()}`,
+    blurb: 'How hard you push the crew each day. Faster covers more ground and costs more '
+      + 'health, and a worn-down crew walks slowly no matter what you set here.',
+    current: g.pace,
+    params,
+    options: Object.entries(ctx.Sim.PACES).map(([id, def]) => ({
+      value: id, label: def.label, hint: def.blurb,
+    })),
+    apply: (v) => ctx.Sim.setPace(g, v),
+  });
+}
+
+export function rations(ctx, params = {}) {
+  const g = ctx.game;
+  const living = g.party.filter((m) => m.alive).length || 1;
+  return chooser(ctx, {
+    title: 'Change food rations',
+    meta: `${living} still walking`,
+    blurb: 'How much everyone eats each day. Cutting rations stretches the food bags and '
+      + 'quietly wears the crew down; empty bags are far worse than thin ones.',
+    current: g.rations,
+    params,
+    options: Object.entries(ctx.Sim.RATIONS).map(([id, def]) => ({
+      value: id, label: def.label,
+      hint: `${def.lbPerDay} lb each per day — ${def.lbPerDay * living} lb a day for this crew. ${def.blurb}`,
+    })),
+    apply: (v) => ctx.Sim.setRations(g, v),
+  });
 }
 
 // ---------------------------------------------------------------- event ----
@@ -184,7 +255,7 @@ export function camp(ctx, params = {}) {
     sick.length
       ? el('div', el('h3', 'Who needs it'), el('div.rows', sick.map((m) => el('div.row',
           el('div.grow', el('div.name', m.trailName || m.name),
-            el('div.sub', m.ailments.length ? m.ailments.map((a) => a.id.replace(/-/g, ' ')).join(', ') : 'worn down')),
+            el('div.sub', m.ailments.length ? m.ailments.map((a) => a.id.replace(/[_-]+/g, ' ')).join(', ') : 'worn down')),
           el('span.num', Math.round(m.health)),
         ))))
       : el('p.prose.small.good', 'Everybody is walking well. A rest day is a luxury right now.'),
@@ -399,8 +470,10 @@ export function ford(ctx, params = {}) {
     mountTo(body,
       el('p.prose', res.text || (outcome.success ? 'You are across.' : 'That went badly.')),
       (res.lines || []).length ? el('div.rows', res.lines.map((l) => el('div.row', el('span.grow', l)))) : null,
-      el('div.panel-foot', button('Onward', () => {
+      el('div.panel-foot', button(g.pendingFord ? 'Look at it again' : 'Onward', () => {
         if (g.status !== 'playing') { ctx.endRun(); return; }
+        // 'wait' leaves the ford pending — the crew is still on the south bank.
+        if (g.pendingFord) { ctx.go('ford', { landmark: lm }); return; }
         ctx.go('landmark', { landmark: lm });
       }, { cls: 'primary' })),
     );
@@ -471,11 +544,22 @@ export function forage(ctx, params = {}) {
     running = false;
   }
 
+  const fuel = ctx.Sim.forageFuel(g);
   mountTo(body,
     el('p.prose',
       'You drop the packs and spend a day working the country around camp for berries, mushrooms and whatever ',
       'is holding in the creek. It costs a day, and you can only carry a hundred pounds back.'),
     el('p.prose.small', 'The foraging here looks ', el('em', quality), '.'),
+    el('div.kv', { style: { marginTop: '10px' } },
+      el('div', el('span', 'Stove fuel'),
+        el('b', { class: fuel.enough ? '' : 'bad' }, `${fuel.have} canister${fuel.have === 1 ? '' : 's'}`)),
+      el('div', el('span', 'Carry limit'), el('b', '100 lb')),
+    ),
+    fuel.enough
+      ? el('p.prose.small.faint', 'A day out costs one canister of fuel to cook what you bring back.')
+      : el('p.prose.small.bad',
+          'No fuel left. Without a stove you can only carry back what the crew can eat raw — '
+          + `roughly ${Math.round(fuel.penalty * 100)}% of a normal haul. Buy fuel at the next store.`),
     el('p.prose.small.faint', 'Arrows or WASD to move, Space to gather, Esc to head back early.'),
   );
 
