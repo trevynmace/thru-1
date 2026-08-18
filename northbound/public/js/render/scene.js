@@ -429,12 +429,15 @@ export function createScene(canvas) {
     st.wind = state.wind !== undefined ? state.wind
       : (grade ? grade[3] * (0.5 + st.sev * 0.5) : Math.sin(time * 0.21) * 0.12);
     st.haze = mix(st.hor, '#ffffff', 0.10 * (1 - st.night));
-    st.hazeAmt = 0.55 + (grade ? grade[2] * st.sev : 0);
+    // Enough haze to sell distance, not so much that the ranges dissolve into the sky.
+    st.hazeAmt = 0.36 + (grade ? grade[2] * st.sev : 0);
 
     // snow line on the peaks
     const elev = state.elevation || 3000;
     const snowy = curBiome === 'alpine' || curBiome === 'sierra' || curBiome === 'volcanic' || elev > 7200;
-    st.snowY = snowy ? lerp(58, RIDGE_BASE[1], clamp((elev - 4200) / 7000, 0, 1)) : -99;
+    // Snow belongs on the peaks. Sitting it near the ridge *base* caps almost the whole
+    // silhouette white, which reads as one flat band instead of a range.
+    st.snowY = snowy ? lerp(52, RIDGE_BASE[0] - 9, clamp((elev - 4200) / 7000, 0, 1)) : -99;
     if (st.weather === 'snow') st.snowY = Math.max(st.snowY, RIDGE_BASE[1] - 4);
   }
 

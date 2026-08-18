@@ -44,7 +44,13 @@ const SCREENS = {
 };
 
 // Screens that sit on top of the trail HUD rather than replacing it.
-const OVERLAY_SCREENS = new Set(['map', 'pack', 'party', 'event', 'camp', 'talk', 'trade', 'landmark', 'store', 'settings', 'help', 'scores']);
+const OVERLAY_SCREENS = new Set([
+  'map', 'pack', 'party', 'event', 'camp', 'talk', 'trade', 'landmark', 'store',
+  'settings', 'help', 'scores',
+  // The minigame screens are modal too: their intro/outcome panels sit over the HUD,
+  // and Esc has to be able to back out of them like any other panel.
+  'ford', 'forage',
+]);
 
 // Music selection per biome, for the travel screen.
 const BIOME_TRACK = {

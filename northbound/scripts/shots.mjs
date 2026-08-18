@@ -46,7 +46,7 @@ async function main() {
     for (const [phaseName, dayPhase] of PHASES) {
       const weather = WEATHER[n % WEATHER.length];
       await page.evaluate(([b, dp, w]) => window.setScene({ biome: b, dayPhase: dp, weather: w }), [biome, dayPhase, weather]);
-      await sleep(300);
+      await sleep(1100);
       await page.screenshot({ path: join(OUT, `scene-${biome}-${phaseName}-${weather}.png`) });
       n++;
     }
@@ -54,7 +54,7 @@ async function main() {
 
   for (const w of ['clear', 'hot', 'rain', 'storm', 'hail', 'snow', 'smoke', 'fog', 'wind']) {
     await page.evaluate((ww) => window.setScene({ biome: 'sierra', dayPhase: 0.45, weather: ww }), w);
-    await sleep(280);
+    await sleep(1100);
     await page.screenshot({ path: join(OUT, `weather-${w}.png`) });
   }
 

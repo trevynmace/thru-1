@@ -330,6 +330,25 @@ function unitOf(id) {
   return u === 'lb' ? 'lb' : u === 'head' ? 'head' : u === 'set' ? 'sets' : 'units';
 }
 
+/**
+ * Run a minigame with a hard wall-clock ceiling.
+ *
+ * The minigames are self-contained and own their own lifecycle, but a modal that never
+ * resolves would wedge the whole game with no way back. This guarantees the trail
+ * always continues, with an average result if the minigame did not report one.
+ */
+function withWatchdog(promise, ms, fallback) {
+  let timer = 0;
+  const guard = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      console.warn('[northbound] minigame exceeded its time budget; resolving it');
+      resolve(fallback);
+    }, ms);
+  });
+  return Promise.race([Promise.resolve(promise).catch(() => fallback), guard])
+    .then((v) => { clearTimeout(timer); return v || fallback; });
+}
+
 // ----------------------------------------------------------------- ford ----
 
 export function ford(ctx, params = {}) {
@@ -359,7 +378,11 @@ export function ford(ctx, params = {}) {
     let outcome = { success: true, severity: 1, log: [] };
     try {
       const { runFord } = await import('../../minigames/ford.js');
-      outcome = await runFord(canvas, { ford: f, method, g, rng: g.rng, audio: Audio });
+      outcome = await withWatchdog(
+        runFord(canvas, { ford: f, method, g, rng: g.rng, audio: Audio }),
+        75000,
+        { success: true, severity: 1, log: [] },
+      );
     } catch (err) {
       console.warn('[northbound] ford minigame unavailable, resolving directly');
     } finally {
@@ -422,7 +445,11 @@ export function forage(ctx, params = {}) {
     try {
       const { runForage } = await import('../../minigames/forage.js');
       // No occupation bonus here — applyForageResult() applies the forage perk itself.
-      out = await runForage(canvas, { quality, biome: params.biome || 'forest', rng: g.rng, audio: Audio, bonus: 1 });
+      out = await withWatchdog(
+        runForage(canvas, { quality, biome: params.biome || 'forest', rng: g.rng, audio: Audio, bonus: 1 }),
+        90000,
+        { lbs: 18, log: [] },
+      );
     } catch (err) {
       console.warn('[northbound] forage minigame unavailable, resolving directly');
     } finally {

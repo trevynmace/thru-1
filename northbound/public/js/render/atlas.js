@@ -30,6 +30,7 @@ let images = Object.create(null);      // id -> ImageBitmap | HTMLImageElement |
 let frames = Object.create(null);      // name -> {img, x, y, w, h, id}
 let anims = Object.create(null);       // name -> {frames:[names], fps, loop}
 let tintKeys = null;                   // {slot: [r,g,b]} or null
+let tintKeyPrefix = '';                // frames carrying the key colours are `<prefix><name>`
 let loaded = false;
 let loadPromise = null;
 
@@ -145,6 +146,7 @@ export async function loadAtlas(url = '/assets/atlas.json') {
     deriveImplicitAnims();
 
     tintKeys = parseTintKeys(json.tintKeys);
+    tintKeyPrefix = (json.tintKeys && typeof json.tintKeys.keyPrefix === 'string') ? json.tintKeys.keyPrefix : '';
 
     tintCache.clear(); recolorCache.clear(); shadowCache.clear(); imageTintCache.clear();
     loaded = Object.keys(frames).length > 0;
@@ -328,9 +330,13 @@ function unit(rgb, out) {
  * With no tintKeys in the atlas this is a no-op and returns the source frame.
  */
 export function recolorFrame(name, colors) {
-  const src = frames[name];
+  const plain = frames[name];
+  // Prefer the key-coloured twin (`key_<name>`): that is the copy with the shirt and
+  // skin painted in the reserved key colours that this function replaces. Falling back
+  // to the plain frame would make every recolour a silent no-op.
+  const src = (tintKeyPrefix && frames[tintKeyPrefix + name]) || plain;
   if (!src) return PLACEHOLDER;
-  if (!tintKeys || !colors) return src;
+  if (!tintKeys || !colors) return plain || src;
 
   let key = name;
   for (const slot in tintKeys) key += '|' + (colors[slot] || '-');

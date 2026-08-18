@@ -118,13 +118,13 @@ body {
 .subtitle, .tagline, .footnote {
   text-shadow: 0 1px 0 #0e0b17, 0 0 10px rgba(14, 11, 23, .95), 0 0 22px rgba(14, 11, 23, .8);
 }
-#screen-title .title-block, #screen-title .footnote {
-  position: relative;
-}
-#screen-title .title-block::before {
-  content: ''; position: absolute; inset: -12% -8%;
-  background: radial-gradient(ellipse at center, rgba(14, 11, 23, .82) 35%, rgba(14, 11, 23, 0) 72%);
-  z-index: -1;
+/* One full-screen scrim rather than a halo behind the text: a localised blob reads as
+   a smudge on the sky, a top-and-bottom gradient reads as evening. */
+#screen-title::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(14, 11, 23, .78) 0%, rgba(14, 11, 23, .34) 38%,
+                            rgba(14, 11, 23, .30) 62%, rgba(14, 11, 23, .80) 100%);
 }
 kbd {
   font: inherit; font-size: .9em; padding: 1px 5px;

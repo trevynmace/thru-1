@@ -55,7 +55,9 @@ export function memberSprite(member, size = 48, frameName = 'hiker_idle_0') {
   try {
     ctx.save();
     ctx.scale(scale, scale);
-    draw(ctx, member.alive ? frameName : 'hiker_dead_0', 0, 0, { tint: member.portrait });
+    // `tint` is a single hex; a per-slot portrait map goes through `recolor`.
+    draw(ctx, member.alive ? frameName : 'hiker_dead_0', 0, 0,
+      member.alive ? { recolor: member.portrait } : undefined);
     ctx.restore();
   } catch {}
   return canvas;

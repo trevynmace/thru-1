@@ -115,9 +115,17 @@ async function shot(page, name) {
   await page.screenshot({ path: join(SHOT_DIR, name + '.png') });
 }
 
-/** Click a button whose text contains `text` inside the active screen. */
+/**
+ * Click a button whose text contains `text` inside the *topmost* screen.
+ *
+ * Modal screens layer over the trail HUD, so both are `.screen.active` at once and a
+ * bare `.screen.active` selector can match the HUD button sitting underneath the modal
+ * (which is unclickable, because the modal's scrim covers it).
+ */
 async function clickText(page, text, { timeout = 8000, optional = false } = {}) {
-  const locator = page.locator(`.screen.active button:has-text("${text}"), .screen.active .btn:has-text("${text}")`).first();
+  const screen = await page.evaluate(() => (window.NB && window.NB.screen) || null);
+  const scope = screen ? `#screen-${screen}` : '.screen.active';
+  const locator = page.locator(`${scope} button:has-text("${text}"), ${scope} .btn:has-text("${text}")`).first();
   try {
     await locator.waitFor({ state: 'visible', timeout });
     await locator.click();
@@ -166,7 +174,7 @@ async function run(page) {
   log('set up a crew');
   await clickText(page, 'Begin the trail');
   await page.waitForSelector('#screen-setup.active');
-  await page.locator('.screen.active .card').nth(2).click();     // an occupation
+  await page.locator('#screen-setup .card').nth(2).click();     // an occupation
   await clickText(page, 'Roll new names', { optional: true });
   await sleep(150);
   await shot(page, 'setup');
@@ -182,7 +190,7 @@ async function run(page) {
     ['First Aid Kit', 3], ['Clothing', 4],
   ];
   for (const [name, clicks] of buys) {
-    const row = page.locator('.screen.active .row', { hasText: name }).first();
+    const row = page.locator('#screen-store .row', { hasText: name }).first();
     if (!(await row.count())) continue;
     const plus = row.locator('button:has-text("+")');
     for (let i = 0; i < clicks; i++) await plus.click({ timeout: 3000 }).catch(() => {});
@@ -202,8 +210,13 @@ async function run(page) {
   const maxTurns = QUICK ? 40 : 260;
   let lastMile = -1, stuck = 0, forded = 0, foraged = 0, events = 0, landmarks = 0;
 
+  let lastReport = Date.now();
   for (let turn = 0; turn < maxTurns; turn++) {
     const state = await gameState(page);
+    if (Date.now() - lastReport > 20000) {
+      lastReport = Date.now();
+      console.log(`      … turn ${turn}: day ${state?.day} mile ${state?.mile} on "${await activeScreen(page)}"`);
+    }
     if (!state) { fail('lost the game state mid-run'); break; }
     if (state.status !== 'playing') {
       log(`run ended: ${state.status} (${state.cause || '—'}) on day ${state.day}, mile ${state.mile}`);
@@ -224,7 +237,7 @@ async function run(page) {
       events++;
       if (events === 1) await shot(page, 'event');
       if (!await clickText(page, 'See what happens', { timeout: 1200, optional: true })) {
-        await page.locator('.screen.active #event-choices .btn').first().click().catch(() => {});
+        await page.locator('#screen-event #event-choices .btn').first().click().catch(() => {});
       }
       await sleep(220);
       await clickText(page, 'Onward', { timeout: 4000, optional: true });
@@ -240,16 +253,15 @@ async function run(page) {
         forded++;
         await sleep(250);
         if (forded === 1) await shot(page, 'ford');
-        await page.locator('.screen.active .btn').nth(Math.min(4, forded % 5)).click().catch(() => {});
-        await sleep(2600);                       // let the crossing play out
-        await page.keyboard.press('Escape');
-        await sleep(600);
+        await page.locator('#screen-ford .menu-numbered .btn').nth(Math.min(4, forded % 5)).click().catch(() => {});
+        await sleep(1400);                       // let the crossing get going
+        for (let k = 0; k < 3; k++) { await page.keyboard.press('Escape'); await sleep(350); }
         await clickText(page, 'Onward', { timeout: 6000, optional: true });
         continue;
       }
 
       if (state.food < 120 && await clickText(page, 'Buy supplies', { timeout: 700, optional: true })) {
-        const row = page.locator('.screen.active .row', { hasText: 'Trail Food' }).first();
+        const row = page.locator('#screen-store .row', { hasText: 'Trail Food' }).first();
         const plus = row.locator('button:has-text("+")');
         for (let i = 0; i < 30; i++) await plus.click({ timeout: 1500 }).catch(() => {});
         await clickText(page, 'Buy', { optional: true });
@@ -261,10 +273,9 @@ async function run(page) {
         foraged++;
         if (await clickText(page, 'Try to forage', { timeout: 700, optional: true })) {
           await clickText(page, 'Spend the day', { timeout: 3000, optional: true });
-          await sleep(1200);
+          await sleep(1500);
           if (foraged === 1) await shot(page, 'forage');
-          await page.keyboard.press('Escape');
-          await sleep(900);
+          for (let k = 0; k < 3; k++) { await page.keyboard.press('Escape'); await sleep(350); }
           await clickText(page, 'Back to the trail', { timeout: 6000, optional: true });
           continue;
         }
@@ -276,7 +287,12 @@ async function run(page) {
         continue;
       }
 
-      await clickText(page, 'Continue on the trail', { timeout: 3000 });
+      // The numbered menus are keyboard-driven, and "1" is always "carry on" - a far
+      // more robust way to advance than matching button text.
+      if (!(await clickText(page, 'Continue on the trail', { timeout: 2500, optional: true }))) {
+        await page.keyboard.press('1');
+        await sleep(300);
+      }
       continue;
     }
 
@@ -290,15 +306,42 @@ async function run(page) {
       // pressing every turn just switches walking on and off and goes nowhere.
       const moving = await page.evaluate(() => !!(window.NB && window.NB.isTravelling && window.NB.isTravelling()));
       if (!moving) await page.keyboard.press(' ');
-      await sleep(QUICK ? 900 : 1800);
+      // Wait on the game rather than the clock: travel ticks a day roughly every 0.6s,
+      // so a fixed sleep either burns wall time or misses the tick entirely.
+      await page.waitForFunction(
+        (fromDay) => {
+          const g = window.NB && window.NB.game;
+          if (!g) return true;
+          return g.day >= fromDay + 3
+            || g.status !== 'playing'
+            || (window.NB.screen && window.NB.screen !== 'trail');
+        },
+        state.day,
+        { timeout: 6000, polling: 100 },
+      ).catch(() => {});
       continue;
     }
 
     if (screen === 'end') break;
 
-    // Any other screen: back out and keep going.
-    await page.keyboard.press('Escape');
-    await sleep(250);
+    // Every other screen is a panel with a way out; take it, and fall back to Esc.
+    const exits = {
+      store: 'Done', pack: 'Close', party: 'Close', map: 'Close',
+      talk: 'Back', trade: 'Walk away', camp: 'Never mind',
+      forage: 'Not today', ford: 'Onward', settings: 'Back', help: 'Back', scores: 'Back',
+    };
+    const exit = exits[screen];
+    if (!exit || !(await clickText(page, exit, { timeout: 1500, optional: true }))) {
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      // Still here? The screen has no working exit — that is worth failing on.
+      if ((await activeScreen(page)) === screen && screen !== 'trail') {
+        await page.keyboard.press('Escape');
+        await sleep(400);
+        if ((await activeScreen(page)) === screen) fail(`no way out of the "${screen}" screen`);
+      }
+    }
+    await sleep(200);
   }
 
   log('reach the end screen');

@@ -2,11 +2,25 @@
 // Small, dependency-free builders so screen modules read like markup instead of
 // twenty lines of createElement per panel.
 
-/** el('div.card.selected', { onclick }, 'text', childNode, ...) */
+/**
+ * el('div.card.selected', { onclick }, 'text', childNode, ...)
+ *
+ * The `#id` may appear on any segment (`div#box.card` or `div.card#box`) — reading it
+ * only off the tag silently turns `div.card#box` into a class literally named
+ * "card#box" with no id, which fails in a way nothing warns you about.
+ */
 export function el(spec, props, ...children) {
-  const [tagPart, ...classes] = String(spec).split('.');
-  const [tag, id] = tagPart.split('#');
-  const node = document.createElement(tag || 'div');
+  let tag = 'div';
+  let id = '';
+  const classes = [];
+  for (const [i, seg] of String(spec).split('.').entries()) {
+    const hash = seg.indexOf('#');
+    const name = hash >= 0 ? seg.slice(0, hash) : seg;
+    if (hash >= 0) id = seg.slice(hash + 1);
+    if (i === 0) { if (name) tag = name; }
+    else if (name) classes.push(name);
+  }
+  const node = document.createElement(tag);
   if (id) node.id = id;
   if (classes.length) node.className = classes.join(' ');
 
