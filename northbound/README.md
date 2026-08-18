@@ -35,7 +35,7 @@ snow line closing in behind you — and rebuilds it as a **faithful Oregon Trail
 | Pick a banker / carpenter / farmer | Pick a trail angel, gear rep, ranger, camp cook or dirtbag |
 | Buy oxen, food, spare parts at Matt's | Buy mules, food and spares at the Southern Terminus outfitter |
 | Wagon axle / wheel / tongue breaks | Cart axle / wheel / hitch breaks — plus soles, poles and filters |
-| Steady, strenuous, grueling pace | Same three, and grueling still puts people in a tent |
+| Steady, strenuous, grueling pace | Same three, and grueling is still a trap |
 | Filling / meager / bare-bones rations | Same three, still 3 / 2 / 1 lb per person per day |
 | Ford, caulk, ferry or wait at the river | Wade, rock-hop, pack-raft, pay a shuttle, or camp and cross at dawn |
 | Hunt buffalo, carry 100 lb back | Forage berries, mushrooms and fish, carry 100 lb back |

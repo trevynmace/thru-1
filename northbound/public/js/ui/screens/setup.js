@@ -7,10 +7,10 @@ import { OCCUPATIONS, NAME_POOL } from '../../../../data/party.js';
 import { makeRng, pick } from '../../engine/rng.js';
 
 const MONTHS = [
-  { value: 3, label: 'March', blurb: 'Cold desert nights and a Sierra full of snow — but the snow line is a whole season behind you.' },
+  { value: 3, label: 'March', blurb: 'Weeks of slack against the snow line, paid for in the High Sierra: postholing, whiteouts, and creeks at peak melt. Bring an ice axe.' },
   { value: 4, label: 'April', blurb: 'The bubble. Warm days, company at every water cache, passes that melt out just in time.' },
-  { value: 5, label: 'May', blurb: 'Easy walking south, dry passes north. The snow line starts breathing down your neck in Oregon.' },
-  { value: 6, label: 'June', blurb: 'The desert will try to cook you and Washington will not wait. Only if you are fast.' },
+  { value: 5, label: 'May', blurb: 'The Sierra is mostly melted out and the walking is easy — but the snow line is already breathing on your neck by Oregon.' },
+  { value: 6, label: 'June', blurb: 'Dry passes, no snowpack, and no margin at all. Almost nobody who leaves this late touches the northern monument. A dare, not a plan.' },
 ];
 
 export function setup(ctx) {

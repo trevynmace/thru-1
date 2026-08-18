@@ -105,13 +105,27 @@ body {
   letter-spacing: .42em;
   text-indent: .42em;
   text-transform: uppercase;
-  color: var(--ink-dim);
+  color: var(--ink);
 }
 .tagline {
   max-width: 46ch; margin: 1.6em auto 0;
-  color: var(--ink-dim); font-size: .92em; line-height: 1.75;
+  color: var(--ink); font-size: .92em; line-height: 1.75;
 }
-.footnote { margin-top: clamp(18px, 4vh, 40px); color: var(--ink-faint); font-size: .8em; }
+.footnote { margin-top: clamp(18px, 4vh, 40px); color: var(--ink-dim); font-size: .8em; }
+
+/* The title sits over a live, sometimes very bright, scene. Anything that has to stay
+   readable against it gets its own scrim rather than relying on the art being dark. */
+.subtitle, .tagline, .footnote {
+  text-shadow: 0 1px 0 #0e0b17, 0 0 10px rgba(14, 11, 23, .95), 0 0 22px rgba(14, 11, 23, .8);
+}
+#screen-title .title-block, #screen-title .footnote {
+  position: relative;
+}
+#screen-title .title-block::before {
+  content: ''; position: absolute; inset: -12% -8%;
+  background: radial-gradient(ellipse at center, rgba(14, 11, 23, .82) 35%, rgba(14, 11, 23, 0) 72%);
+  z-index: -1;
+}
 kbd {
   font: inherit; font-size: .9em; padding: 1px 5px;
   border: 1px solid var(--edge); border-bottom-width: 2px;
@@ -352,9 +366,13 @@ input[type=range] { width: 100%; accent-color: var(--gold-dim); }
 /* -------------------------------------------------------------- journal --- */
 .journal {
   position: absolute; left: clamp(12px, 2vw, 22px); top: 96px; z-index: 4;
+  visibility: hidden;
   width: min(320px, 40vw); display: flex; flex-direction: column; gap: 4px;
   pointer-events: none;
 }
+/* Only visible while the trail HUD is the frontmost surface. */
+body.on-trail .journal { visibility: visible; }
+
 .journal .line {
   font-size: .78em; line-height: 1.5; padding: 5px 9px;
   background: rgba(14, 11, 23, .72); border-left: 2px solid var(--edge);
@@ -406,6 +424,15 @@ input[type=range] { width: 100%; accent-color: var(--gold-dim); }
 .tag.good { background: rgba(143, 208, 164, .14); border-color: #3f6b4e; color: var(--sage); }
 .tag.cold { background: rgba(191, 227, 255, .12); border-color: #3f5b74; color: var(--sky-ice); }
 
+/* Numbered option menus (the landmark stop, the ford, the event card) are the game's
+   main verb list. They have to fit on one screen without scrolling, so they run tighter
+   than a normal button stack. */
+.menu-numbered { display: flex; flex-direction: column; gap: 5px; }
+.menu-numbered .btn {
+  padding: 7px 12px; text-align: left; box-shadow: none; font-size: .88em;
+}
+.menu-numbered .btn .hint { margin-top: 1px; }
+
 .center { text-align: center; }
 .muted  { color: var(--ink-dim); }
 .faint  { color: var(--ink-faint); }
@@ -421,8 +448,12 @@ input[type=range] { width: 100%; accent-color: var(--gold-dim); }
 .divider { height: 1px; background: var(--edge-soft); margin: 18px 0; border: 0; }
 
 .map-canvas, .game-canvas {
-  width: 100%; display: block; image-rendering: pixelated;
+  display: block; margin: 0 auto; image-rendering: pixelated;
   background: #0b0813; border: 2px solid var(--edge); border-radius: var(--radius);
+  /* Keep the intrinsic aspect ratio and let height be the constraint on short
+     viewports, so the panel's footer never gets pushed off the bottom. */
+  width: auto; height: auto;
+  max-width: 100%; max-height: 52vh;
 }
 
 .scroller { max-height: 46vh; overflow-y: auto; padding-right: 6px; }

@@ -839,7 +839,11 @@ function killMember(g, rep, m, cause) {
     : `${m.name} does not get up. ${cause === 'starvation' ? 'There had been nothing in the food bag for days.' : 'The trail took more than the crew had left.'}`;
   rep.lines.push(logLine(g, 'death', text));
   const ep = pick(g.rng, EPITAPHS || []);
-  if (ep) rep.lines.push(logLine(g, 'death', `Cairn at mile ${Math.round(g.mile)}: "${ep}"`));
+  if (ep) {
+    // Keep it on the member too: the end screen reads the cairn back off the body.
+    m.epitaph = ep;
+    rep.lines.push(logLine(g, 'death', `Cairn at mile ${Math.round(g.mile)}: "${ep}"`));
+  }
   for (const other of livingParty(g)) other.spirit = clamp(other.spirit + BALANCE.spiritDeath, 0, 100);
   if (livingCount(g) === 0 && g.status === 'playing') {
     g.status = 'lost';

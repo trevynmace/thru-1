@@ -1017,11 +1017,15 @@ function drawCart(c, frame) {
   // shadowed underside of the canvas
   c.dither(4, 9, 25, 2, P.canvasDark, null, 'check');
 
-  // --- dark opening at the rear ---
-  c.ellipse(4, 8, 3, 5, P.panel);
-  c.ellipse(4, 8, 2, 4, P.night);
-  for (let y = 0; y < 24; y++) for (let x = 0; x < 3; x++) {
-    if (c.get(x, y)[3] && y < 3) c.erase(x, y);
+  // --- shaded opening at the rear ---
+  // Keep it inside the canvas arch and only as dark as deep shade. A true-black ellipse
+  // here reads as a hole punched through the sprite rather than the inside of a wagon.
+  c.ellipse(7, 8, 3, 4, mix(P.canvasDark, P.panel, 0.5));
+  c.ellipse(7, 8, 2, 3, mix(P.panel, P.violet, 0.35));
+  // clip anything that escaped above the canvas line
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 10; x++) {
+    const dx = (x - 16) / 12.5, dy = (y - 11) / 9.5;
+    if (dx * dx + dy * dy > 1) c.erase(x, y);
   }
 
   // --- lashed gear on the tail: a bucket, a crate, a coil of rope ---

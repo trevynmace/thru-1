@@ -426,6 +426,8 @@ test('a member dying leaves a body, an epitaph and a morale hit', () => {
   assert.equal(livingCount(g), 4);
   assert.ok(g.party[0].spirit < spiritBefore, 'the crew should take it hard');
   assert.ok(g.log.some((l) => l.kind === 'death' && /Cairn/i.test(l.text)), 'an epitaph is logged');
+  assert.ok(typeof g.party[3].epitaph === 'string' && g.party[3].epitaph.length > 0,
+    'the epitaph is kept on the body for the end screen');
   assert.equal(g.status, 'playing', 'one death is not the end of the run');
 });
 

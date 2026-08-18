@@ -171,9 +171,14 @@ function smooth(t) { return t * t * (3 - 2 * t); }
 // deterministic value noise (world-space, so mile N is always mile N)
 // ---------------------------------------------------------------------------
 
+// The classic integer hash. It depends on 32-bit multiply *overflow*, which plain `*`
+// does not give you in JS: n*n*15731 runs past 2^53 and silently loses its low bits,
+// which is exactly the part being hashed. The result is a constant, and constant noise
+// means perfectly flat ridgelines. Math.imul is the 32-bit multiply this needs.
 function hashi(n) {
-  n = (n << 13) ^ n;
-  return ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741823 - 1;
+  n = ((n << 13) ^ n) | 0;
+  const t = (Math.imul(n, Math.imul(Math.imul(n, n), 15731) + 789221) + 1376312589) | 0;
+  return (t & 0x7fffffff) / 1073741823 - 1;
 }
 function hashu(n) {
   n = (n ^ 61) ^ (n >>> 16);
@@ -497,8 +502,8 @@ export function createScene(canvas) {
       if (al < 0.09) continue;
       ctx.globalAlpha = al > 1 ? 1 : al;
       ctx.fillRect(starX[i], starY[i], 1, 1);
-      if (starB[i] > 0.93 && al > 0.7) {
-        ctx.globalAlpha = al * 0.4;
+      if (starB[i] > 0.975 && al > 0.8) {
+        ctx.globalAlpha = al * 0.22;
         ctx.fillRect(starX[i] - 1, starY[i], 1, 1);
         ctx.fillRect(starX[i] + 1, starY[i], 1, 1);
         ctx.fillRect(starX[i], starY[i] - 1, 1, 1);
@@ -1182,8 +1187,10 @@ export function createScene(canvas) {
       for (let x = 0; x < W; x++) {
         const dx = (x - cx) / maxd, dy = (y - cy) / maxd;
         let t = Math.sqrt(dx * dx + dy * dy) * 1.42;
-        t = clamp((t - 0.52) / 0.48, 0, 1);
-        const a = Math.pow(t, 1.7) * 168;
+        // Start the falloff well out toward the corners and keep the maximum gentle —
+        // a vignette should sit under the picture, not read as a spotlight on it.
+        t = clamp((t - 0.72) / 0.28, 0, 1);
+        const a = Math.pow(t, 2.0) * 74;
         const i = (y * W + x) * 4;
         d[i] = 12; d[i + 1] = 9; d[i + 2] = 24; d[i + 3] = a | 0;
       }

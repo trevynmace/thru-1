@@ -99,9 +99,17 @@ export function help(ctx) {
       'The crew eats <b>3 lb each per day</b> on filling rations, 2 on meager, 1 on bare-bones. Thin rations save ' +
       'weight and money and quietly wreck everyone\'s health. Empty packs are much worse.'),
     ...section('Pace is the whole game',
-      '<em>Steady</em> makes about 15 miles a day and keeps people healthy. <em>Strenuous</em> makes 20. ' +
-      '<em>Grueling</em> makes 25 and will put someone in a tent with a stress fracture. Push when the snow is ' +
-      'close, ease off when it isn\'t.'),
+      '<em>Steady</em> keeps people healthy and still covers ground. <em>Strenuous</em> is the pace that ' +
+      'actually finishes the trail. <em>Grueling</em> looks faster on the day and is slower over a season — ' +
+      'it burns the crew down until sick, slow people cost you more miles than the extra hours won. Push it ' +
+      'when the snow is close, not because it sounds bold.'),
+    ...section('When you leave matters most',
+      'Leave in <b>March</b> and you reach the High Sierra while it is still buried: postholing, whiteouts, ' +
+      'and creeks at peak melt. Leave in <b>June</b> and the passes are dry but the snow line is behind you ' +
+      'from day one. <b>April</b> is the answer most crews land on, which does not make it the only one.'),
+    ...section('The cart wears out',
+      'Every mile grinds it down, and a worn cart drags. Rest days let the crew work on it, and any town with ' +
+      'a road will true the wheels for money. Ignore it and you will spend the season getting slower.'),
     ...section('Things break',
       'Mules go lame. Cart wheels split. Filters clog and soles delaminate. Spares are cheap at the terminus and ' +
       'painful to need at Sonora Pass. Buy more than you think you need.'),

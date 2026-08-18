@@ -112,6 +112,36 @@ export function store(ctx, params = {}) {
     ctx.close();
   }
 
+  // --- cart repair -------------------------------------------------------
+  // Anywhere with a store has a road, and anywhere with a road can true a wheel.
+  // Without this the cart only ever decays and the run quietly becomes unwinnable.
+  const repairRow = el('div');
+  function renderRepair() {
+    const cond = Math.round(g.cart.condition);
+    if (cond >= 100) {
+      mountTo(repairRow, el('p.prose.small.faint', 'The cart is sound. Nothing to do here.'));
+      return;
+    }
+    const quote = ctx.Sim.repairQuote(g, mult);
+    const affordable = Math.min(quote, g.supplies.money);
+    mountTo(repairRow, el('div.row',
+      itemIcon('spare_wheel'),
+      el('div.grow',
+        el('div.name', 'Work on the cart'),
+        el('div.sub', `Condition ${cond}%. A full job runs ${fmtMoney(quote)}.`),
+      ),
+      button(g.supplies.money >= quote ? 'Repair fully' : `Spend ${fmtMoney(affordable)}`, () => {
+        const res = ctx.Sim.repairCart(g, mult);
+        if (!res.ok) { Audio.sfx('error'); ctx.toast(res.reason || 'They cannot help.', 'bad'); return; }
+        Audio.sfx('hammer');
+        ctx.toast(`Cart back to ${Math.round(g.cart.condition)}%.`, 'good');
+        ctx.refreshHud();
+        renderRepair();
+        render();
+      }, { cls: 'small', disabled: g.supplies.money < 1 }),
+    ));
+  }
+
   const greeting = STORE_GREETINGS[landmark.id]
     || 'The shelves are thin and the prices are honest enough, considering how far the truck has to come.';
 
@@ -121,6 +151,9 @@ export function store(ctx, params = {}) {
       el('b', 'Buy well here.'), ' This is the cheapest store on the whole trail. Food is the one thing you ',
       'cannot improvise, mules pull the cart, and every spare you skip is a day you will spend sitting in the dirt.'),
     listNode,
+    el('hr.divider'),
+    el('h3', 'The cart'),
+    repairRow,
     el('hr.divider'),
     totalNode,
   );
@@ -139,6 +172,7 @@ export function store(ctx, params = {}) {
   });
 
   render();
+  renderRepair();
   return { node };
 }
 

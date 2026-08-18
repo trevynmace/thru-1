@@ -29,7 +29,7 @@ export function landmark(ctx, params = {}) {
   opt('Trade with hikers', () => ctx.go('trade', { landmark: lm }));
   opt('Talk to people', () => ctx.go('talk', { landmark: lm }));
 
-  const menu = el('div.stack', options.slice(0, 9).map((o, i) => el('button.btn.wide', {
+  const menu = el('div.menu-numbered', options.slice(0, 9).map((o, i) => el('button.btn.wide', {
     type: 'button', dataset: { key: String(i + 1) },
     onclick: () => { Audio.sfx('select'); o.fn(); },
   }, `${i + 1}. ${o.label}`, o.hint && el('span.hint', o.hint))));
@@ -116,7 +116,7 @@ export function event(ctx, params = {}) {
   }
 
   const choices = ev.choices && ev.choices.length
-    ? el('div.stack#event-choices', ev.choices.map((c, i) => el('button.btn.wide', {
+    ? el('div.menu-numbered#event-choices', ev.choices.map((c, i) => el('button.btn.wide', {
         type: 'button', dataset: { key: String(i + 1) },
         onclick: () => { Audio.sfx('select'); resolveChoice(i); },
       }, `${i + 1}. ${c.label}`)))
@@ -392,7 +392,7 @@ export function ford(ctx, params = {}) {
       el('div', el('span', 'Flow'), el('b', f.flow)),
     ),
     el('hr.divider'),
-    el('div.stack', methods.map((m, i) => el('button.btn.wide', {
+    el('div.menu-numbered', methods.map((m, i) => el('button.btn.wide', {
       type: 'button', dataset: { key: String(i + 1) },
       onclick: () => { Audio.sfx('select'); run(m.id); },
     }, `${i + 1}. ${m.label}`, el('span.hint', m.hint)))),

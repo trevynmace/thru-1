@@ -219,6 +219,8 @@ export function go(name, params = null) {
   state.cleanup = result.unmount || null;
   node.classList.add('active');
 
+  document.body.classList.toggle('on-trail', false);
+
   focusFirst(node);
   playMusicForContext();
 }
@@ -228,6 +230,7 @@ export function showTrail() {
   if (state.cleanup) { try { state.cleanup(); } catch {} state.cleanup = null; }
   for (const s of document.querySelectorAll('.screen.active')) s.classList.remove('active');
   document.getElementById('screen-trail').classList.add('active');
+  document.body.classList.add('on-trail');
   state.screen = 'trail';
   state.stack.length = 0;
   refreshHud();
