@@ -2,7 +2,7 @@
 // every resupply store on trail, where the price multiplier climbs with remoteness.
 import { el, panel, button, mountTo, fmtMoney, fmtNum } from '../dom.js';
 import { Audio } from '../../audio/audio.js';
-import { ITEMS, ITEMS_BY_ID, priceOf } from '../../../../data/items.js';
+import { ITEMS, ITEMS_BY_ID } from '../../../../data/items.js';
 import { stockFor } from '../../../../data/store.js';
 import { STORE_GREETINGS } from '../../../../data/dialogue.js';
 import { LANDMARKS } from '../../../../data/trail.js';
@@ -21,12 +21,14 @@ export function store(ctx, params = {}) {
     || LANDMARKS[0];
   const mult = (landmark.store && landmark.store.mult) || 1;
   const outfitting = !!params.outfitting;
-  const haggle = occupationEffect(g, 'haggle') ? 0.9 : 1;
-  const effMult = mult * haggle;
+
+  // The engine owns the price model (including the haggle perk) so the sticker price
+  // here and the price charged at checkout can never drift apart.
+  const price = (id) => ctx.Sim.unitPrice(g, id, mult);
 
   const stock = stockFor(landmark).filter((id) => ITEMS_BY_ID[id]);
   const cart = Object.create(null);          // pending purchases, applied on checkout
-  const total = () => stock.reduce((s, id) => s + (cart[id] || 0) * priceOf(id, effMult), 0);
+  const total = () => stock.reduce((s, id) => s + (cart[id] || 0) * price(id), 0);
 
   const listNode = el('div.scroller');
   const totalNode = el('div.inline');
@@ -57,7 +59,7 @@ export function store(ctx, params = {}) {
       el('h3', CATEGORY_LABEL[cat] || cat),
       el('div.rows', ids.map((id) => {
         const item = ITEMS_BY_ID[id];
-        const price = priceOf(id, effMult);
+        const unit = price(id);
         const have = Math.round(g.supplies[id] ?? 0);
         const n = qty(id);
         return el('div.row',
@@ -67,7 +69,7 @@ export function store(ctx, params = {}) {
             el('div.sub', item.blurb),
           ),
           el('div', { style: { textAlign: 'right', minWidth: '84px' } },
-            el('div.num', fmtMoney(price) + (item.unit === 'lb' ? '/lb' : '')),
+            el('div.num', fmtMoney(unit) + (item.unit === 'lb' ? '/lb' : '')),
             el('div.sub', `have ${fmtNum(have)}${item.unit === 'lb' ? ' lb' : ''}`),
           ),
           el('div.inline',
@@ -91,7 +93,7 @@ export function store(ctx, params = {}) {
     let bought = 0;
     for (const [id, n] of Object.entries(cart)) {
       if (!n) continue;
-      const res = ctx.Sim.buy(g, id, n, effMult);
+      const res = ctx.Sim.buy(g, id, n, mult);
       if (!res.ok) { Audio.sfx('error'); ctx.toast(res.reason || 'That purchase failed.', 'bad'); return; }
       bought += n;
     }
@@ -138,12 +140,6 @@ export function store(ctx, params = {}) {
 
   render();
   return { node };
-}
-
-function occupationEffect(g, key) {
-  const occ = g.leader.occupation;
-  if (occ && typeof occ === 'object' && occ.effects) return occ.effects[key];
-  return null;
 }
 
 export { ITEMS };

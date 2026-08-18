@@ -2,41 +2,55 @@
 import { el, panel, button, mountTo, fmtNum } from '../dom.js';
 import { Audio } from '../../audio/audio.js';
 
-// The title screen is markup-in-HTML plus a generated menu, so it can show a
-// "Continue" entry only when a save actually exists.
+// The router owns every screen node, so the title builds its own markup. The
+// "Continue" entry only appears once a save file has actually been read back.
 export function title(ctx) {
-  const menu = document.getElementById('title-menu');
-  const buttons = [];
+  const menu = el('nav.menu-buttons');
 
-  const add = (label, fn, cls = '') => buttons.push(button(label, () => { Audio.sfx('select'); fn(); }, { cls }));
+  const add = (label, fn, cls = '') =>
+    menu.appendChild(button(label, () => { Audio.sfx('select'); fn(); }, { cls }));
 
   add('Begin the trail', () => ctx.go('setup'), 'primary big');
+
   const resume = button('Continue your run', async () => {
     Audio.sfx('select');
     const g = await ctx.loadSaved();
-    if (g) { ctx.go('map'); ctx.close(); }
+    if (g) ctx.close();
     else ctx.toast('No save could be read.', 'bad');
   });
   resume.disabled = true;
-  resume.style.display = 'none';
-  buttons.push(resume);
+  resume.hidden = true;
+  menu.appendChild(resume);
+
   add('Hall of fame', () => ctx.go('scores'));
   add('How to hike it', () => ctx.go('help'));
   add('Settings', () => ctx.go('settings'));
 
-  mountTo(menu, buttons);
-
-  // Reveal Continue only if a save round-trips.
-  ctx.loadScores; // (kept for symmetry; scores are loaded on their own screen)
+  let cancelled = false;
   (async () => {
     try {
       const { loadGame } = await import('../../engine/save.js');
       const raw = await loadGame();
-      if (raw) { resume.disabled = false; resume.style.display = ''; }
-    } catch {}
+      if (raw && !cancelled) { resume.disabled = false; resume.hidden = false; }
+    } catch { /* no save is the normal case */ }
   })();
 
-  return { node: null, unmount: () => {} };
+  const node = el('div',
+    el('div.title-block',
+      el('h1.logo', 'NORTHBOUND'),
+      el('p.subtitle', 'two thousand six hundred and fifty miles'),
+      el('p.tagline',
+        'Five hikers, a gear cart and a string of mules leave the Mexican border in spring. ',
+        'Canada is a long way north, and the snow is already thinking about the passes.'),
+    ),
+    menu,
+    el('p.footnote', 'Mouse or keyboard. ', el('kbd', 'Enter'), ' to choose, ', el('kbd', 'Esc'), ' to go back.'),
+  );
+  node.style.display = 'flex';
+  node.style.flexDirection = 'column';
+  node.style.alignItems = 'center';
+
+  return { node, unmount: () => { cancelled = true; } };
 }
 
 export function settings(ctx) {

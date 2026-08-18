@@ -80,21 +80,18 @@ export function event(ctx, params = {}) {
   const text = fillTemplate(ev.text, g);
   const outcome = el('div');
 
-  function resolveChoice(choice) {
-    const rng = g.rng || Math.random;
-    let effects = choice.effects;
-    let resultText = choice.resultText;
-    if (typeof choice.chance === 'number') {
-      const roll = (typeof rng === 'function' ? rng() : Math.random());
-      if (roll > choice.chance) { effects = choice.failEffects || {}; resultText = choice.failText || resultText; }
-    }
-    const lines = ctx.Sim.applyEffects(g, effects || {});
-    finish(resultText, lines);
+  // The engine rolls the odds and applies the effects so the UI cannot desync the RNG.
+  function resolveChoice(index) {
+    const res = ctx.Sim.resolveChoice(g, ev, index);
+    const choice = ev.choices[index];
+    const resultText = res.success ? choice.resultText : (choice.failText || choice.resultText);
+    finish(resultText, res.lines || []);
   }
 
+  // A plain event was already resolved by advanceDay() before this screen opened, so
+  // there is nothing left to apply here — re-applying would charge the player twice.
   function resolvePlain() {
-    const lines = ctx.Sim.applyEffects(g, ev.effects || {});
-    finish(ev.resultText, lines);
+    finish(ev.resultText, params.report ? (params.report.lines || []).slice(-4) : []);
   }
 
   function finish(resultText, lines) {
@@ -121,7 +118,7 @@ export function event(ctx, params = {}) {
   const choices = ev.choices && ev.choices.length
     ? el('div.stack#event-choices', ev.choices.map((c, i) => el('button.btn.wide', {
         type: 'button', dataset: { key: String(i + 1) },
-        onclick: () => { Audio.sfx('select'); resolveChoice(c); },
+        onclick: () => { Audio.sfx('select'); resolveChoice(i); },
       }, `${i + 1}. ${c.label}`)))
     : el('div.stack#event-choices', button('See what happens', () => { Audio.sfx('select'); resolvePlain(); }, { cls: 'primary' }));
 
@@ -424,10 +421,8 @@ export function forage(ctx, params = {}) {
     let out = { lbs: 18, log: [] };
     try {
       const { runForage } = await import('../../minigames/forage.js');
-      out = await runForage(canvas, {
-        quality, biome: params.biome || 'forest', rng: g.rng, audio: Audio,
-        bonus: occupationEffect(g, 'forageBonus') || 1,
-      });
+      // No occupation bonus here — applyForageResult() applies the forage perk itself.
+      out = await runForage(canvas, { quality, biome: params.biome || 'forest', rng: g.rng, audio: Audio, bonus: 1 });
     } catch (err) {
       console.warn('[northbound] forage minigame unavailable, resolving directly');
     } finally {
@@ -475,9 +470,4 @@ function nearestLandmark(mile) {
   let best = LANDMARKS[0];
   for (const l of LANDMARKS) if (Math.abs(l.mile - mile) < Math.abs(best.mile - mile)) best = l;
   return best;
-}
-
-function occupationEffect(g, key) {
-  const occ = g.leader.occupation;
-  return occ && typeof occ === 'object' && occ.effects ? occ.effects[key] : null;
 }

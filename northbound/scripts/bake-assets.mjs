@@ -1540,3 +1540,1126 @@ function bakeLandmarks() {
     c.line(24, 1, 40, 8, mix(P.metalDark, P.night, 0.3));
   });
 }
+
+// =============================================================================
+// 10. ITEM ICONS (16x16)
+// -----------------------------------------------------------------------------
+// One per id in data/items.js when that file exists; otherwise the required id
+// list from SPEC §3.2, verbatim and in spec order.
+// =============================================================================
+
+const SPEC_ITEM_IDS = [
+  'food',
+  'spare_wheel', 'spare_axle', 'spare_hitch', 'spare_soles', 'spare_poles', 'spare_filter',
+  'clothing', 'puffy',
+  'first_aid', 'electrolytes', 'blister_kit',
+  'mule',
+  'bear_can', 'ice_axe', 'stove_fuel', 'water_carry',
+  'camp_chair', 'paperback', 'harmonica',
+];
+
+async function resolveItemIds() {
+  const p = path.join(ROOT, 'data', 'items.js');
+  if (!fs.existsSync(p)) return { ids: SPEC_ITEM_IDS.slice(), source: 'SPEC.md §3.2' };
+  try {
+    const mod = await import(new URL(`file://${p}`).href);
+    const ids = (mod.ITEMS || []).map((it) => it.id).filter(Boolean);
+    if (!ids.length) return { ids: SPEC_ITEM_IDS.slice(), source: 'SPEC.md §3.2 (items.js empty)' };
+    // keep any spec-required id the data file forgot, so the atlas never
+    // under-delivers on the contract
+    for (const id of SPEC_ITEM_IDS) if (!ids.includes(id)) ids.push(id);
+    return { ids, source: 'data/items.js' };
+  } catch (err) {
+    return { ids: SPEC_ITEM_IDS.slice(), source: `SPEC.md §3.2 (items.js unreadable: ${err.message})` };
+  }
+}
+
+const ITEM_DRAWERS = {
+  // --- food: a cinched stuff sack, bulging ---
+  food: (c) => {
+    c.poly([[3, 14], [2, 9], [4, 6], [11, 6], [13, 9], [12, 14]], P.canvasCol);
+    c.poly([[3, 13], [3, 9], [5, 7], [7, 7], [6, 13]], mix(P.canvasCol, P.ink, 0.25));
+    c.ditherOver(2, 11, 12, 4, P.canvasDark, 'b25');
+    // cinch collar + drawstring
+    c.fillRect(4, 4, 7, 3, P.leafDark);
+    c.hline(4, 10, 4, mix(P.leafDark, P.ink, 0.3));
+    c.px(4, 3, P.pack); c.px(6, 2, P.pack); c.px(8, 2, P.pack); c.px(10, 3, P.pack);
+    c.hline(3, 11, 8, P.strap);
+    // a little label tag
+    c.fillRect(11, 10, 3, 3, P.gold);
+    c.px(12, 11, P.woodDark);
+  },
+
+  // --- cart wheel: rim, spokes, hub ---
+  spare_wheel: (c) => {
+    drawWheel(c, 7, 8, 7, 0.26, 8);
+  },
+
+  // --- axle: steel rod with collars and a keyway ---
+  spare_axle: (c) => {
+    c.fillRect(1, 7, 14, 3, P.metal);
+    c.hline(1, 14, 7, P.metalLite);
+    c.hline(1, 14, 9, P.metalDark);
+    c.fillRect(2, 5, 3, 7, P.metalDark);
+    c.fillRect(11, 5, 3, 7, P.metalDark);
+    c.hline(2, 4, 5, P.metal); c.hline(11, 13, 5, P.metal);
+    c.px(7, 8, P.metalDark); c.px(8, 8, P.metalDark);
+    c.fillRect(0, 6, 1, 5, P.metalDark);
+    c.fillRect(15, 6, 1, 5, P.metalDark);
+  },
+
+  // --- hitch: a clevis with its pin and ring ---
+  spare_hitch: (c) => {
+    // U-shaped clevis
+    c.fillRect(4, 4, 3, 9, P.metal);
+    c.fillRect(11, 4, 3, 9, P.metal);
+    c.fillRect(4, 11, 10, 3, P.metal);
+    c.hline(4, 6, 4, P.metalLite); c.hline(11, 13, 4, P.metalLite);
+    c.hline(4, 13, 13, P.metalDark);
+    // pin through the jaws
+    c.fillRect(3, 6, 12, 2, P.metalDark);
+    c.fillRect(2, 5, 2, 4, P.metal);
+    c.px(2, 5, P.metalLite);
+    // tow ring
+    c.circle(9, 2, 2, P.metalDark, false);
+    c.px(8, 1, P.metalLite);
+  },
+
+  // --- boot soles: a pair, tread down ---
+  spare_soles: (c) => {
+    const sole = (x, y, col, tread) => {
+      c.poly([[x, y + 9], [x, y + 3], [x + 1, y], [x + 4, y], [x + 5, y + 3], [x + 5, y + 9], [x + 3, y + 11], [x + 1, y + 11]], col);
+      for (let j = 1; j < 10; j += 2) c.hline(x + 1, x + 4, y + j, tread);
+      c.hline(x, x + 5, y + 8, tread);
+    };
+    sole(2, 2, P.leather ?? '#8a6244', mix('#8a6244', P.night, 0.4));
+    sole(9, 3, '#6f4f36', mix('#6f4f36', P.night, 0.4));
+    c.px(4, 2, '#a67c58'); c.px(11, 3, '#8a6244');
+  },
+
+  // --- trekking poles: crossed, with grips, straps and baskets ---
+  spare_poles: (c) => {
+    c.line(2, 14, 12, 1, P.pole);
+    c.line(13, 14, 3, 1, mix(P.pole, P.night, 0.22));
+    // grips
+    c.line(11, 3, 12, 1, P.dark2); c.line(12, 2, 13, 0, P.dark2);
+    c.line(4, 3, 3, 1, P.dark2);
+    c.px(12, 1, P.rust); c.px(3, 1, P.rust);
+    // wrist strap
+    c.px(11, 4, P.strap); c.px(10, 5, P.strap); c.px(10, 4, P.strap);
+    // baskets near the tips
+    c.hline(1, 4, 12, P.metalDark); c.hline(12, 15, 12, P.metalDark);
+    c.px(2, 15, P.metalLite); c.px(13, 15, P.metalLite);
+  },
+
+  // --- water filter: cartridge body, ports, hose ---
+  spare_filter: (c) => {
+    c.fillRect(5, 3, 6, 10, P.skyIce);
+    c.rect(5, 3, 6, 10, mix(P.edge, P.night, 0.2));
+    c.vline(6, 4, 11, P.ink);
+    c.dither(7, 4, 3, 8, mix(P.skyIce, P.violet, 0.35), null, 'hline');
+    // caps
+    c.fillRect(4, 1, 8, 2, P.metalDark); c.hline(4, 11, 1, P.metal);
+    c.fillRect(4, 13, 8, 2, P.metalDark); c.hline(4, 11, 15, P.metalDark);
+    // inlet + outlet hose
+    c.fillRect(11, 4, 2, 2, P.metalDark);
+    c.line(12, 5, 15, 8, P.sage2);
+    c.line(15, 8, 13, 12, P.sage2);
+    c.fillRect(2, 5, 2, 2, P.metalDark);
+    c.line(2, 6, 0, 9, P.sage2);
+  },
+
+  // --- clothing: a folded stack of layers ---
+  clothing: (c) => {
+    const layer = (y, col, hi) => {
+      c.fillRect(2, y, 12, 3, col);
+      c.hline(2, 13, y, hi);
+      c.hline(2, 13, y + 2, mix(col, P.night, 0.35));
+      c.px(7, y + 1, mix(col, P.night, 0.25));
+    };
+    layer(11, '#5d6b8a', '#8697b5');
+    layer(7, '#8a6a55', '#b08b70');
+    layer(3, '#6d7a5c', '#95a37e');
+    // a folded sleeve edge on the top layer
+    c.fillRect(3, 2, 4, 2, '#95a37e');
+    c.hline(3, 6, 2, '#b3c095');
+  },
+
+  // --- puffy: baffled down jacket ---
+  puffy: (c) => {
+    const body = P.rust, dark = mix(P.rust, P.night, 0.35), lite = mix(P.rust, P.ink, 0.25);
+    // torso
+    c.poly([[4, 14], [3, 6], [5, 4], [10, 4], [12, 6], [11, 14]], body);
+    // sleeves
+    c.poly([[3, 6], [0, 8], [1, 13], [4, 13], [4, 7]], body);
+    c.poly([[12, 6], [15, 8], [14, 13], [11, 13], [11, 7]], body);
+    // baffles
+    for (let y = 6; y < 14; y += 2) { c.hline(1, 14, y, dark); }
+    c.hline(4, 11, 5, lite);
+    // collar
+    c.fillRect(5, 2, 6, 3, dark);
+    c.hline(5, 10, 2, lite);
+    // zip
+    c.vline(7, 5, 13, mix(P.ink, P.night, 0.2));
+    c.px(7, 5, P.metalLite);
+  },
+
+  // --- first aid: a kit box with a cross and a latch ---
+  first_aid: (c) => {
+    c.fillRect(1, 5, 14, 9, P.canvasCol);
+    c.rect(1, 5, 14, 9, P.woodDark);
+    c.hline(2, 13, 6, mix(P.canvasCol, P.ink, 0.35));
+    c.ditherOver(1, 11, 14, 3, P.canvasDark, 'b25');
+    // handle
+    c.hline(6, 9, 3, P.strap); c.px(5, 4, P.strap); c.px(10, 4, P.strap);
+    // cross
+    c.fillRect(7, 7, 2, 6, P.rust);
+    c.fillRect(5, 9, 6, 2, P.rust);
+    c.px(7, 7, mix(P.rust, P.ink, 0.35));
+    // latch
+    c.fillRect(0, 8, 2, 3, P.metalDark);
+    c.px(0, 8, P.metal);
+  },
+
+  // --- electrolytes: a tube of tabs, two spilled ---
+  electrolytes: (c) => {
+    c.fillRect(4, 3, 6, 11, mix(P.sage, P.night, 0.15));
+    c.vline(5, 4, 13, mix(P.sage, P.ink, 0.45));
+    c.vline(9, 4, 13, mix(P.sage, P.night, 0.42));
+    c.hline(4, 9, 13, mix(P.sage, P.night, 0.5));
+    // cap
+    c.fillRect(3, 0, 8, 3, P.gold);
+    c.hline(3, 10, 0, mix(P.gold, P.ink, 0.4));
+    c.hline(3, 10, 2, P.goldDim);
+    // label band
+    c.fillRect(4, 7, 6, 3, P.ink);
+    c.px(6, 8, P.rust); c.px(7, 8, P.rust);
+    // loose tablets
+    c.circle(13, 11, 2, P.ink); c.px(13, 10, P.inkDim);
+    c.circle(12, 14, 1, P.inkDim);
+  },
+
+  // --- blister kit: a plaster over a sheet of moleskin ---
+  blister_kit: (c) => {
+    // moleskin sheet behind
+    c.fillRect(1, 2, 11, 9, mix(P.inkDim, P.night, 0.35));
+    c.rect(1, 2, 11, 9, mix(P.inkDim, P.night, 0.6));
+    c.circle(6, 6, 2, P.night, false);
+    c.dither(2, 3, 9, 7, mix(P.inkDim, P.night, 0.2), null, 'b25');
+    // the plaster, at a jaunty angle
+    c.poly([[3, 13], [5, 8], [15, 10], [13, 15]], P.bandage);
+    c.poly([[7, 10], [11, 11], [10, 14], [6, 13]], mix(P.bandage, P.night, 0.22));
+    c.px(8, 11, P.bandage); c.px(9, 12, P.bandage);
+    c.px(4, 10, mix(P.bandage, P.ink, 0.3)); c.px(14, 12, mix(P.bandage, P.night, 0.3));
+  },
+
+  // --- mule: a head in profile ---
+  mule: (c) => {
+    c.poly([[4, 15], [3, 8], [5, 5], [9, 4], [12, 7], [14, 12], [13, 15]], P.mule);
+    // muzzle
+    c.fillRect(11, 10, 4, 4, P.muleGrey);
+    c.px(14, 12, P.outline);
+    c.hline(11, 14, 13, mix(P.muleGrey, P.night, 0.35));
+    // ears, long
+    c.poly([[4, 5], [3, 0], [6, 1], [6, 5]], P.mule);
+    c.poly([[8, 4], [10, 0], [12, 2], [11, 6]], P.mule);
+    c.px(4, 2, P.muleDark); c.px(10, 2, P.muleDark);
+    // mane + jaw shadow
+    c.line(3, 8, 5, 15, P.muleDark, 2, 1);
+    c.ditherOver(3, 11, 11, 5, P.muleDark, 'b25');
+    // eye + forelock
+    c.px(9, 8, P.outline); c.px(10, 8, P.outline);
+    c.px(7, 4, P.muleDark); c.px(8, 5, P.muleDark);
+    c.px(6, 6, mix(P.mule, P.ink, 0.25));
+    // halter
+    c.line(10, 9, 12, 12, P.strap);
+    c.line(6, 12, 13, 11, P.strap);
+  },
+
+  // --- bear canister ---
+  bear_can: (c) => {
+    c.fillRect(2, 3, 12, 11, P.dark2);
+    c.ellipse(7.5, 3, 6, 2, mix(P.dark2, P.violet, 0.35));
+    c.ellipse(7.5, 14, 6, 2, mix(P.dark2, P.night, 0.4));
+    c.vline(3, 4, 13, mix(P.dark2, P.ink, 0.22));
+    c.vline(13, 4, 13, mix(P.dark2, P.night, 0.45));
+    // lid seam + the two coin slots you turn with a spoon
+    c.ellipse(7.5, 5, 6, 2, mix(P.dark2, P.night, 0.5), false);
+    c.fillRect(5, 2, 2, 1, P.inkDim);
+    c.fillRect(9, 3, 2, 1, P.inkDim);
+    // ribbed body
+    for (let y = 8; y < 14; y += 2) c.hline(3, 12, y, mix(P.dark2, P.night, 0.35));
+    c.px(5, 3, mix(P.dark2, P.ink, 0.4));
+  },
+
+  // --- ice axe ---
+  ice_axe: (c) => {
+    // shaft
+    c.line(11, 2, 5, 13, P.metalDark, 2, 1);
+    c.line(11, 2, 5, 13, P.metal);
+    // pick + adze head
+    c.poly([[8, 1], [14, 4], [15, 6], [12, 4], [10, 3]], P.metalLite);
+    c.poly([[9, 1], [10, 0], [6, 1], [5, 3], [8, 3]], P.metalLite);
+    c.px(15, 6, P.ink); c.px(5, 3, P.ink);
+    c.fillRect(9, 1, 3, 3, P.metalDark);
+    // grip
+    c.line(8, 8, 6, 11, P.rust, 2, 1);
+    // spike
+    c.px(4, 14, P.metalLite); c.px(4, 15, P.ink);
+  },
+
+  // --- stove fuel canister ---
+  stove_fuel: (c) => {
+    c.fillRect(2, 5, 12, 9, mix(P.edge, P.night, 0.1));
+    c.ellipse(7.5, 5, 6, 2, P.edge);
+    c.ellipse(7.5, 14, 6, 2, mix(P.edge, P.night, 0.45));
+    c.vline(3, 6, 13, mix(P.edge, P.ink, 0.3));
+    c.vline(12, 6, 13, mix(P.edge, P.night, 0.4));
+    // label band
+    c.fillRect(2, 8, 12, 3, P.gold);
+    c.px(5, 9, P.woodDark); c.px(7, 9, P.woodDark); c.px(9, 9, P.woodDark);
+    // valve + collar
+    c.fillRect(6, 1, 4, 4, P.metalDark);
+    c.hline(5, 10, 3, P.metal);
+    c.fillRect(7, 0, 2, 1, P.metalLite);
+  },
+
+  // --- water bottle ---
+  water_carry: (c) => {
+    c.fillRect(4, 4, 8, 11, P.glass);
+    c.ellipse(7.5, 15, 4, 1, mix(P.glass, P.night, 0.35));
+    c.rect(4, 4, 8, 11, mix(P.edge, P.night, 0.15));
+    // the water inside
+    c.fillRect(5, 8, 6, 6, P.water);
+    c.hline(5, 10, 8, P.waterLite);
+    c.dither(5, 9, 6, 5, mix(P.water, P.waterDark, 0.4), null, 'b25');
+    // highlight
+    c.vline(5, 5, 7, mix(P.glass, P.ink, 0.55));
+    // neck + cap
+    c.fillRect(6, 2, 4, 2, P.glass);
+    c.fillRect(5, 0, 6, 2, P.rust);
+    c.hline(5, 10, 0, mix(P.rust, P.ink, 0.3));
+    // graduations
+    c.px(10, 6, P.ink); c.px(10, 10, P.ink); c.px(10, 12, P.ink);
+  },
+
+  // --- camp chair, in profile ---
+  camp_chair: (c) => {
+    // back
+    c.poly([[3, 9], [4, 2], [8, 1], [8, 8]], P.sage2);
+    c.hline(4, 7, 3, mix(P.sage2, P.ink, 0.3));
+    // seat
+    c.poly([[3, 9], [12, 8], [12, 10], [4, 11]], P.sage2);
+    c.hline(4, 11, 9, mix(P.sage2, P.ink, 0.25));
+    // X frame
+    c.line(3, 2, 9, 15, P.metalDark);
+    c.line(13, 6, 3, 15, P.metalDark);
+    c.line(12, 8, 13, 15, P.metalDark);
+    c.px(6, 9, P.metal);
+    // feet
+    c.px(9, 15, P.dark); c.px(3, 15, P.dark); c.px(13, 15, P.dark);
+    // armrest
+    c.line(8, 6, 12, 7, P.metal);
+  },
+
+  // --- paperback ---
+  paperback: (c) => {
+    c.poly([[2, 13], [3, 2], [13, 3], [12, 14]], P.rust);
+    // page block
+    c.poly([[12, 14], [13, 3], [14, 4], [13, 15]], P.ink);
+    for (let y = 5; y < 14; y += 2) c.px(13, y, P.inkDim);
+    // spine
+    c.vline(3, 3, 13, mix(P.rust, P.night, 0.4));
+    c.vline(4, 3, 13, mix(P.rust, P.night, 0.2));
+    // cover art + title bar
+    c.fillRect(6, 5, 5, 3, P.gold);
+    c.hline(6, 10, 10, P.canvasCol);
+    c.hline(6, 9, 12, P.canvasCol);
+    c.px(8, 6, P.woodDark);
+    // dog-eared corner
+    c.px(12, 3, P.canvasCol); c.px(11, 3, P.canvasCol);
+  },
+
+  // --- harmonica ---
+  harmonica: (c) => {
+    c.fillRect(1, 5, 14, 6, P.metal);
+    c.hline(1, 14, 5, P.metalLite);
+    c.hline(1, 14, 10, P.metalDark);
+    // comb slot band
+    c.fillRect(1, 7, 14, 2, P.dark2);
+    for (let x = 2; x < 15; x += 2) c.vline(x, 7, 8, P.metalDark);
+    // cover plate rivets
+    c.px(2, 6, P.metalLite); c.px(13, 6, P.metalLite);
+    c.px(2, 9, P.metalDark); c.px(13, 9, P.metalDark);
+    // end caps
+    c.fillRect(0, 4, 2, 8, P.metalDark);
+    c.fillRect(14, 4, 2, 8, P.metalDark);
+    c.px(0, 4, P.metal); c.px(15, 4, P.metal);
+    // a couple of notes drifting off
+    c.px(13, 2, P.gold); c.px(14, 1, P.gold); c.px(14, 2, P.gold);
+    c.px(10, 1, P.goldDim);
+  },
+};
+
+function bakeItems(ids) {
+  for (const id of ids) {
+    const drawer = ITEM_DRAWERS[id];
+    sprite(`item_${id}`, 16, 16, (c) => {
+      if (drawer) drawer(c);
+      else {
+        // generic crate, so a data file that adds items still gets an icon
+        c.fillRect(2, 4, 12, 10, P.wood);
+        c.rect(2, 4, 12, 10, P.woodDark);
+        c.line(2, 4, 13, 13, P.woodDark);
+        c.line(13, 4, 2, 13, P.woodDark);
+        c.hline(3, 12, 5, P.woodLite);
+      }
+      c.outline(P.outline);
+    });
+  }
+}
+
+// =============================================================================
+// 11. UI
+// =============================================================================
+
+function bakeUI() {
+  // --- 8x8 nine-slice: dark panel, violet edge, 1px inner highlight ---
+  const nine = (name, fn) => sprite(name, 8, 8, fn);
+  const fillPanel = (c) => c.fillRect(0, 0, 8, 8, P.panel);
+  const E = P.edge, EL = mix(P.edge, P.ink, 0.25), ED = mix(P.edge, P.night, 0.45);
+
+  nine('ui_frame_tl', (c) => {
+    fillPanel(c);
+    c.fillRect(0, 0, 8, 2, E); c.fillRect(0, 0, 2, 8, E);
+    c.hline(2, 7, 0, EL); c.vline(0, 2, 7, EL);
+    c.px(0, 0, EL); c.px(1, 1, ED);
+    c.px(2, 2, ED); c.hline(2, 7, 2, ED); c.vline(2, 2, 7, ED);
+  });
+  nine('ui_frame_t', (c) => {
+    fillPanel(c);
+    c.fillRect(0, 0, 8, 2, E);
+    c.hline(0, 7, 0, EL); c.hline(0, 7, 2, ED);
+  });
+  nine('ui_frame_tr', (c) => {
+    fillPanel(c);
+    c.fillRect(0, 0, 8, 2, E); c.fillRect(6, 0, 2, 8, E);
+    c.hline(0, 7, 0, EL); c.vline(7, 0, 7, ED);
+    c.px(7, 0, EL);
+    c.hline(0, 5, 2, ED); c.vline(5, 2, 7, ED);
+  });
+  nine('ui_frame_l', (c) => {
+    fillPanel(c);
+    c.fillRect(0, 0, 2, 8, E);
+    c.vline(0, 0, 7, EL); c.vline(2, 0, 7, ED);
+  });
+  nine('ui_frame_c', (c) => { fillPanel(c); c.dither(0, 0, 8, 8, mix(P.panel, P.panel2, 0.5), null, 'b12'); });
+  nine('ui_frame_r', (c) => {
+    fillPanel(c);
+    c.fillRect(6, 0, 2, 8, E);
+    c.vline(7, 0, 7, ED); c.vline(5, 0, 7, ED);
+  });
+  nine('ui_frame_bl', (c) => {
+    fillPanel(c);
+    c.fillRect(0, 6, 8, 2, E); c.fillRect(0, 0, 2, 8, E);
+    c.vline(0, 0, 7, EL); c.hline(0, 7, 7, ED);
+    c.hline(2, 7, 5, ED); c.vline(2, 0, 5, ED);
+  });
+  nine('ui_frame_b', (c) => {
+    fillPanel(c);
+    c.fillRect(0, 6, 8, 2, E);
+    c.hline(0, 7, 7, ED); c.hline(0, 7, 5, ED);
+  });
+  nine('ui_frame_br', (c) => {
+    fillPanel(c);
+    c.fillRect(0, 6, 8, 2, E); c.fillRect(6, 0, 2, 8, E);
+    c.hline(0, 7, 7, ED); c.vline(7, 0, 7, ED);
+    c.hline(0, 5, 5, ED); c.vline(5, 0, 5, ED);
+  });
+
+  // --- pointer ---
+  sprite('ui_cursor', 8, 10, (c) => {
+    const pts = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8],
+    [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7],
+    [2, 2], [2, 3], [2, 4], [2, 5], [2, 6], [2, 7], [2, 8],
+    [3, 3], [3, 4], [3, 5], [3, 6], [3, 9],
+    [4, 4], [4, 5], [4, 6], [4, 9],
+    [5, 5], [5, 6], [5, 7], [5, 8]];
+    for (const [x, y] of pts) c.px(x, y, P.ink);
+    c.px(0, 0, P.gold); c.px(1, 1, P.gold); c.px(2, 2, P.gold);
+    c.outline(P.night);
+  });
+
+  // --- arrow (points right; renderer flips/rotates) ---
+  sprite('ui_arrow', 8, 8, (c) => {
+    c.tri(1, 0, 1, 7, 6, 3.5, P.gold);
+    c.tri(2, 2, 2, 5, 4, 3.5, mix(P.gold, P.ink, 0.5));
+    c.outline(P.night);
+  });
+
+  // --- hearts ---
+  const heartShape = (c, fill, hi) => {
+    c.poly([[0, 2], [1, 1], [3, 1], [4, 2], [5, 1], [7, 1], [8, 2], [8, 4], [4, 7], [0, 4]], fill);
+    if (hi) { c.px(1, 2, hi); c.px(2, 2, hi); c.px(1, 3, hi); }
+  };
+  sprite('ui_heart_full', 9, 8, (c) => { heartShape(c, P.rust, mix(P.rust, P.ink, 0.5)); c.outline(P.night); });
+  sprite('ui_heart_half', 9, 8, (c) => {
+    heartShape(c, P.rust, mix(P.rust, P.ink, 0.5));
+    for (let y = 0; y < 8; y++) for (let x = 4; x < 9; x++) if (c.solid(x, y)) c.px(x, y, P.shade);
+    c.outline(P.night);
+  });
+  sprite('ui_heart_empty', 9, 8, (c) => { heartShape(c, P.shade, null); c.outline(P.night); });
+
+  // --- star ---
+  const starShape = (c, cx, cy, rOut, rIn, col, pts = 5) => {
+    const p = [];
+    for (let i = 0; i < pts * 2; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / pts;
+      const r = i % 2 ? rIn : rOut;
+      p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+    c.poly(p, col);
+  };
+  sprite('ui_star', 9, 9, (c) => {
+    starShape(c, 4, 4.2, 4.4, 1.9, P.gold);
+    c.px(3, 3, mix(P.gold, P.ink, 0.6)); c.px(4, 3, mix(P.gold, P.ink, 0.6));
+    c.px(4, 6, P.goldDim); c.px(2, 6, P.goldDim); c.px(6, 6, P.goldDim);
+    c.outline(P.night);
+  });
+
+  // --- snowflake (UI chrome version) ---
+  const flake = (c, cx, cy, r, col, tip) => {
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3;
+      const ex = cx + Math.cos(a) * r, ey = cy + Math.sin(a) * r;
+      c.line(cx, cy, ex, ey, col);
+      c.px(Math.round(ex), Math.round(ey), tip);
+      // barbs
+      const mx = cx + Math.cos(a) * (r - 1.5), my = cy + Math.sin(a) * (r - 1.5);
+      c.px(Math.round(mx + Math.cos(a + 1.05)), Math.round(my + Math.sin(a + 1.05)), col);
+      c.px(Math.round(mx + Math.cos(a - 1.05)), Math.round(my + Math.sin(a - 1.05)), col);
+    }
+    c.px(cx, cy, tip);
+  };
+  sprite('ui_snowflake', 9, 9, (c) => { flake(c, 4, 4, 4, P.skyIce, P.ink); });
+
+  // --- compass rose ---
+  sprite('ui_compass', 14, 14, (c) => {
+    c.circle(6.5, 6.5, 6.5, P.edge);
+    c.circle(6.5, 6.5, 5.5, P.panel);
+    c.circle(6.5, 6.5, 6.5, mix(P.edge, P.ink, 0.3), false);
+    // tick marks
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      c.px(Math.round(6.5 + Math.cos(a) * 5), Math.round(6.5 + Math.sin(a) * 5), P.inkDim);
+    }
+    // needle: north half in gold (it points up the trail), south dim
+    c.tri(6.5, 1.5, 4.5, 7, 8.5, 7, P.gold);
+    c.tri(6.5, 11.5, 4.5, 6, 8.5, 6, P.shade);
+    c.tri(6.5, 2.5, 5.5, 6.5, 6.5, 6.5, mix(P.gold, P.ink, 0.55));
+    c.px(6, 6, P.ink); c.px(7, 6, P.ink);
+    c.px(6, 0, P.gold);
+  });
+}
+
+// =============================================================================
+// 12. FORAGE MINIGAME SPRITES
+// =============================================================================
+
+function bakeForage() {
+  // --- berries: three clusters, increasing ripeness ---
+  const berryCols = [
+    [mix(P.rust, P.night, 0.25), P.rust],
+    [P.violet, mix(P.violet, P.ink, 0.35)],
+    [mix(P.edge, P.night, 0.15), P.edge],
+  ];
+  for (let i = 0; i < 3; i++) {
+    sprite(`berry_${i}`, 9, 9, (c) => {
+      const [d, l] = berryCols[i];
+      const spots = [[2, 4], [5, 3], [4, 6], [6, 6], [3, 2]];
+      for (const [x, y] of spots) { c.fillRect(x, y, 2, 2, d); c.px(x, y, l); }
+      c.line(4, 3, 5, 0, P.leafDark);
+      c.px(3, 1, P.leaf); c.px(6, 1, P.leaf); c.px(2, 0, P.leaf);
+      c.outline(P.outline);
+    });
+  }
+  // --- mushrooms ---
+  const capCols = [
+    [P.rust, mix(P.rust, P.ink, 0.35)],
+    [P.goldDim, P.gold],
+    [mix(P.violet, P.ink, 0.2), P.skyIce],
+  ];
+  for (let i = 0; i < 3; i++) {
+    sprite(`mushroom_${i}`, 10, 10, (c) => {
+      const [cap, hi] = capCols[i];
+      c.fillRect(3, 5, 3, 4, P.bandage);
+      c.vline(5, 5, 8, mix(P.bandage, P.night, 0.3));
+      c.hline(2, 6, 9, mix(P.bandage, P.night, 0.4));
+      c.ellipse(4.5, 4, 4.5, 3, cap);
+      c.hline(0, 8, 5, mix(cap, P.night, 0.4));
+      c.px(2, 2, hi); c.px(3, 2, hi);
+      if (i === 0) { c.px(6, 3, P.ink); c.px(1, 4, P.ink); c.px(4, 1, P.ink); }
+      if (i === 2) c.dither(0, 3, 9, 2, hi, null, 'b25');
+      // a second smaller cap
+      c.ellipse(8, 7, 2, 1.5, cap);
+      c.vline(8, 7, 9, P.bandage);
+      c.outline(P.outline);
+    });
+  }
+  // --- trout, three swim frames ---
+  for (let i = 0; i < 3; i++) {
+    sprite(`fish_${i}`, 13, 8, (c) => {
+      const bend = [0, 1, -1][i];
+      c.ellipse(6, 4, 5, 2.5, mix(P.edge, P.violet, 0.4));
+      c.ellipse(6, 3, 4, 1.5, mix(P.skyIce, P.violet, 0.5));
+      // tail flicks
+      c.poly([[1, 4], [0, 2 + bend], [0, 6 + bend]], P.violet);
+      // fins
+      c.poly([[5, 2], [8, 2], [6, 0]], mix(P.violet, P.ink, 0.2));
+      c.poly([[5, 6], [8, 6], [6, 7]], mix(P.violet, P.night, 0.2));
+      // spots + eye
+      c.px(6, 3, P.rust); c.px(8, 4, P.rust); c.px(4, 4, P.rust);
+      c.px(10, 3, P.ink); c.px(10, 4, P.outline);
+      c.px(12, 4, mix(P.edge, P.night, 0.2));
+      c.outline(P.outline);
+    });
+  }
+  // --- bear, 4-frame lumbering walk ---
+  for (let i = 0; i < 4; i++) {
+    sprite(`bear_walk_${i}`, 28, 18, (c) => {
+      const th = (i / 4) * TAU;
+      const bob = -Math.round(Math.abs(Math.sin(th * 2)));
+      const B = '#4a3a33', BD = '#2c221e', BL = '#635044';
+      const gy = 17;
+      const leg = (x, ph, near) => {
+        const t = th + ph * TAU;
+        const fx = Math.round(x + 2.5 * Math.cos(t));
+        const fy = Math.round(gy - Math.max(0, -Math.sin(t)) * 2);
+        c.line(x, 11 + bob, fx, fy, near ? BD : mix(BD, P.night, 0.4), 3, 1);
+        c.fillRect(fx, fy - 1, 4, 2, P.outline);
+      };
+      leg(18, 0, false); leg(6, 0.5, false);
+      // hump-shouldered body
+      c.ellipse(13, 9 + bob, 9, 5, B);
+      c.fillRect(5, 5 + bob, 14, 7, B);
+      c.ellipse(16, 6 + bob, 5, 3, BL); // shoulder hump
+      c.ditherOver(4, 11 + bob, 18, 3, BD, 'b25');
+      // head
+      const hx = 21, hy = 5 + bob;
+      c.ellipse(hx + 2, hy + 2, 4, 3.5, B);
+      c.fillRect(hx + 4, hy + 2, 4, 3, mix(BL, P.canvasCol, 0.25)); // muzzle
+      c.px(hx + 7, hy + 3, P.outline);
+      c.px(hx + 3, hy + 1, P.outline); // eye
+      c.circle(hx, hy - 1, 1.5, BD);   // ear
+      c.circle(hx + 3, hy - 2, 1.5, BD);
+      // stub tail
+      c.px(4, 8 + bob, BD); c.px(3, 8 + bob, BD);
+      leg(20, 0.25, true); leg(8, 0.75, true);
+    });
+  }
+  // --- rattlesnake: coiled, then striking ---
+  for (let i = 0; i < 2; i++) {
+    sprite(`snake_${i}`, 16, 10, (c) => {
+      const S = '#8a7a54', SD = '#54492f', SL = '#b3a173';
+      if (i === 0) {
+        // coiled
+        c.ellipse(7, 7, 6.5, 2.5, S);
+        c.ellipse(7, 5, 4.5, 2, S);
+        c.hline(1, 13, 8, SD);
+        for (let x = 2; x < 13; x += 3) { c.px(x, 6, SD); c.px(x + 1, 7, SD); }
+        c.ellipse(11, 3, 2.5, 1.5, S);   // head raised
+        c.px(13, 3, P.rust); c.px(12, 2, P.outline);
+        c.vline(3, 2, 4, SL);            // rattle up
+        c.px(3, 1, P.inkDim);
+      } else {
+        // striking
+        c.ellipse(5, 7, 4.5, 2.5, S);
+        c.line(6, 6, 12, 3, S, 2, 2);
+        c.ellipse(13, 2, 2.5, 1.5, S);
+        c.px(15, 2, P.rust); c.px(14, 1, P.outline);
+        c.hline(1, 8, 8, SD);
+        for (let x = 7; x < 13; x += 2) c.px(x, 5, SD);
+        c.vline(1, 3, 5, SL); c.px(1, 2, P.inkDim); c.px(0, 3, P.inkDim);
+      }
+      c.px(2, 9, SL);
+      c.outline(P.outline);
+    });
+  }
+  // --- the forager (player sprite) ---
+  bakeFigures('forager', 'forager_', false);
+}
+
+// =============================================================================
+// 13. FORD MINIGAME SPRITES
+// =============================================================================
+
+function bakeFord() {
+  // --- 32x16 tiling water, 4 scroll frames ---
+  for (let i = 0; i < 4; i++) {
+    sprite(`water_${i}`, 32, 16, (c) => {
+      const off = i * 2;
+      c.fillRect(0, 0, 32, 16, P.water);
+      // depth bands, dithered (the only gradient tool we get)
+      c.dither(0, 0, 32, 4, P.waterLite, null, 'b25');
+      c.dither(0, 3, 32, 4, mix(P.water, P.waterLite, 0.45), null, 'b50');
+      c.dither(0, 10, 32, 6, P.waterDark, null, 'b50');
+      c.dither(0, 13, 32, 3, mix(P.waterDark, P.night, 0.35), null, 'b75');
+      // travelling chop: three sine crests that wrap horizontally
+      for (let x = 0; x < 32; x++) {
+        const y1 = 3 + Math.round(1.5 + 1.5 * Math.sin((x + off) * 0.5));
+        const y2 = 8 + Math.round(1.5 + 1.5 * Math.sin((x + off) * 0.32 + 2));
+        const y3 = 12 + Math.round(1 + Math.sin((x - off) * 0.7 + 1));
+        c.px(x, y1, P.waterLite);
+        c.px(x, y2, mix(P.waterLite, P.foam, 0.4));
+        c.px(x, y3, mix(P.water, P.waterLite, 0.5));
+      }
+      // whitecaps riding the top crest
+      for (let x = (off % 8); x < 32; x += 8) {
+        c.px(x, 3 + Math.round(1.5 + 1.5 * Math.sin((x + off) * 0.5)) - 1, P.foam);
+        c.px(x + 1, 3 + Math.round(1.5 + 1.5 * Math.sin((x + 1 + off) * 0.5)) - 1, P.foam);
+      }
+    });
+  }
+  // --- packraft, 2 bob frames ---
+  for (let i = 0; i < 2; i++) {
+    sprite(`raft_${i}`, 26, 12, (c) => {
+      const b = i;
+      c.poly([[1, 8 + b], [4, 5 + b], [21, 5 + b], [24, 8 + b], [21, 10 + b], [4, 10 + b]], P.goldDim);
+      c.poly([[5, 6 + b], [20, 6 + b], [20, 7 + b], [5, 7 + b]], P.gold);
+      c.hline(2, 23, 9 + b, mix(P.goldDim, P.night, 0.4));
+      // tube segments
+      for (let x = 6; x < 21; x += 4) c.vline(x, 5 + b, 10 + b, mix(P.goldDim, P.night, 0.25));
+      // dark interior + a lashed dry bag
+      c.fillRect(7, 7 + b, 12, 2, P.dark2);
+      c.fillRect(9, 5 + b, 4, 3, P.pack);
+      c.px(9, 5 + b, P.bedroll);
+      // paddle
+      c.line(14, 3 + b, 22, 9 + b, P.pole);
+      c.fillRect(22, 8 + b, 3, 3, P.metal);
+      c.fillRect(12, 2 + b, 3, 2, P.metal);
+      // splash at the bow
+      c.px(25, 7 + b, P.foam); c.px(24, 6 + b, P.foam); c.px(0, 9 + b, P.foam);
+      c.outline(P.outline);
+    });
+  }
+  // --- stepping stones ---
+  sprite('rock_0', 12, 8, (c) => {
+    c.poly([[0, 7], [1, 3], [5, 1], [9, 2], [11, 6], [11, 7]], P.stone);
+    c.poly([[2, 3], [5, 2], [8, 3], [5, 5]], P.stoneLite);
+    c.dither(0, 5, 12, 3, P.stoneDark, null, 'b25');
+    c.hline(0, 11, 7, P.foam);
+  });
+  sprite('rock_1', 16, 10, (c) => {
+    c.poly([[0, 9], [2, 4], [6, 1], [12, 2], [15, 7], [15, 9]], P.stone);
+    c.poly([[3, 4], [7, 2], [11, 3], [7, 6]], P.stoneLite);
+    c.line(11, 3, 13, 8, P.stoneDark);
+    c.dither(0, 6, 16, 4, P.stoneDark, null, 'b25');
+    c.hline(0, 15, 9, P.foam);
+  });
+  sprite('rock_2', 9, 6, (c) => {
+    c.poly([[0, 5], [1, 2], [4, 0], [8, 3], [8, 5]], P.stone);
+    c.px(2, 2, P.stoneLite); c.px(3, 1, P.stoneLite);
+    c.dither(0, 3, 9, 3, P.stoneDark, null, 'b25');
+    c.hline(0, 8, 5, P.foam);
+  });
+}
+
+// =============================================================================
+// 14. WEATHER & SKY
+// =============================================================================
+
+function bakeWeather() {
+  // --- rain streaks ---
+  for (let i = 0; i < 2; i++) {
+    sprite(`rain_${i}`, 3, 9, (c) => {
+      const col = i ? mix(P.skyIce, P.violet, 0.35) : P.skyIce;
+      c.line(2, 0, 0, 8, col);
+      c.px(1, 4, mix(col, P.ink, 0.4));
+      if (i) c.px(0, 8, P.foam);
+    });
+  }
+  // --- falling snow, three sizes ---
+  sprite('snowflake_0', 3, 3, (c) => { c.px(1, 1, P.snow); c.px(0, 1, mix(P.snow, P.skyIce, 0.6)); c.px(1, 0, mix(P.snow, P.skyIce, 0.6)); });
+  sprite('snowflake_1', 5, 5, (c) => {
+    c.hline(0, 4, 2, P.snow); c.vline(2, 0, 4, P.snow);
+    c.px(0, 0, P.skyIce); c.px(4, 4, P.skyIce); c.px(0, 4, P.skyIce); c.px(4, 0, P.skyIce);
+    c.px(2, 2, P.ink);
+  });
+  sprite('snowflake_2', 7, 7, (c) => {
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3;
+      c.line(3, 3, 3 + Math.cos(a) * 3, 3 + Math.sin(a) * 3, P.snow);
+      c.px(Math.round(3 + Math.cos(a) * 2 + Math.cos(a + 1.05)), Math.round(3 + Math.sin(a) * 2 + Math.sin(a + 1.05)), P.skyIce);
+    }
+    c.px(3, 3, P.ink);
+  });
+  // --- clouds: flat silhouettes, four sizes ---
+  const clouds = [[26, 9, 3], [34, 11, 5], [20, 7, 2], [42, 13, 7]];
+  clouds.forEach(([w, h, seed], i) => {
+    sprite(`cloud_${i}`, w, h, (c) => {
+      const R = rng(500 + seed);
+      const base = h - 2;
+      const lobes = 3 + i;
+      c.fillRect(2, base - 1, w - 4, 2, P.ink);
+      for (let k = 0; k < lobes; k++) {
+        const cx = 3 + Math.round(((w - 7) * k) / Math.max(1, lobes - 1));
+        const rx = 3 + Math.round(R() * 3);
+        const ry = 2 + Math.round(R() * (h - 5));
+        c.ellipse(cx + rx / 2, base - ry + 1, rx, ry, P.ink);
+      }
+      // dithered underside so it reads as volume without a gradient
+      c.ditherOver(0, base - 1, w, 3, mix(P.ink, P.violet, 0.4), 'b50');
+      c.ditherOver(0, base, w, 2, mix(P.violet, P.ink, 0.25), 'b75');
+      c.hline(0, w - 1, h - 1, null);
+    });
+  });
+  // --- sun ---
+  sprite('sun', 18, 18, (c) => {
+    c.circle(8.5, 8.5, 6, P.gold);
+    c.circle(8.5, 8.5, 4, mix(P.gold, P.ink, 0.55));
+    c.ditherOver(0, 9, 18, 8, P.goldDim, 'b25');
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      c.px(Math.round(8.5 + Math.cos(a) * 8), Math.round(8.5 + Math.sin(a) * 8), P.gold);
+      c.px(Math.round(8.5 + Math.cos(a) * 7), Math.round(8.5 + Math.sin(a) * 7), P.goldDim);
+    }
+  });
+  // --- moon: waning gibbous with maria ---
+  sprite('moon', 16, 16, (c) => {
+    c.circle(7.5, 7.5, 7, P.ink);
+    c.circle(7.5, 7.5, 6, mix(P.ink, P.skyIce, 0.35));
+    // bite out the top-right for the phase
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const dx = x - 11, dy = y - 4;
+      if (dx * dx + dy * dy < 42) c.erase(x, y);
+    }
+    c.px(5, 9, mix(P.violet, P.ink, 0.35));
+    c.px(6, 10, mix(P.violet, P.ink, 0.35));
+    c.px(4, 6, mix(P.violet, P.ink, 0.4));
+    c.px(8, 12, mix(P.violet, P.ink, 0.4));
+    c.px(3, 11, mix(P.violet, P.ink, 0.45));
+  });
+  // --- stars, two twinkle phases ---
+  sprite('star_0', 3, 3, (c) => { c.px(1, 1, P.ink); });
+  sprite('star_1', 3, 3, (c) => {
+    c.px(1, 1, P.ink);
+    c.px(0, 1, mix(P.ink, P.violet, 0.45));
+    c.px(2, 1, mix(P.ink, P.violet, 0.45));
+    c.px(1, 0, mix(P.ink, P.violet, 0.45));
+    c.px(1, 2, mix(P.ink, P.violet, 0.45));
+  });
+}
+
+// =============================================================================
+// 15. BITMAP FONT — 5x7
+// -----------------------------------------------------------------------------
+// Grid rows 0..6. Cap height is rows 0..5, the BASELINE IS ROW 5, and row 6 is
+// reserved for descenders (comma, semicolon, $ tail). Stroke weight is 1px
+// everywhere; no glyph touches the cell edge on both sides at once except the
+// full-width bars (E, T, Z, digits), which keeps 1px letter-spacing legible.
+//
+// Lowercase is deliberately NOT drawn: a 4-row x-height at this size turns
+// a/e/s/o into mush. `font_a`..`font_z` are emitted as ALIASES onto the
+// uppercase rects, so drawText() can be handed mixed-case strings safely.
+// atlas.json records this under meta.font.lowercase.
+// =============================================================================
+
+const FONT = {
+  A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '.....'],
+  B: ['####.', '#...#', '####.', '#...#', '#...#', '####.', '.....'],
+  C: ['.###.', '#...#', '#....', '#....', '#...#', '.###.', '.....'],
+  D: ['####.', '#...#', '#...#', '#...#', '#...#', '####.', '.....'],
+  E: ['#####', '#....', '####.', '#....', '#....', '#####', '.....'],
+  F: ['#####', '#....', '####.', '#....', '#....', '#....', '.....'],
+  G: ['.###.', '#...#', '#....', '#..##', '#...#', '.####', '.....'],
+  H: ['#...#', '#...#', '#####', '#...#', '#...#', '#...#', '.....'],
+  I: ['#####', '..#..', '..#..', '..#..', '..#..', '#####', '.....'],
+  J: ['..###', '...#.', '...#.', '...#.', '#..#.', '.##..', '.....'],
+  K: ['#...#', '#..#.', '###..', '#..#.', '#...#', '#...#', '.....'],
+  L: ['#....', '#....', '#....', '#....', '#....', '#####', '.....'],
+  M: ['#...#', '##.##', '#.#.#', '#...#', '#...#', '#...#', '.....'],
+  N: ['#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#', '.....'],
+  O: ['.###.', '#...#', '#...#', '#...#', '#...#', '.###.', '.....'],
+  P: ['####.', '#...#', '#...#', '####.', '#....', '#....', '.....'],
+  Q: ['.###.', '#...#', '#...#', '#...#', '#..#.', '.##.#', '.....'],
+  R: ['####.', '#...#', '#...#', '####.', '#..#.', '#...#', '.....'],
+  S: ['.###.', '#....', '.###.', '....#', '#...#', '.###.', '.....'],
+  T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '.....'],
+  U: ['#...#', '#...#', '#...#', '#...#', '#...#', '.###.', '.....'],
+  V: ['#...#', '#...#', '#...#', '#...#', '.#.#.', '..#..', '.....'],
+  W: ['#...#', '#...#', '#...#', '#.#.#', '##.##', '#...#', '.....'],
+  X: ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '.....'],
+  Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '.....'],
+  Z: ['#####', '....#', '...#.', '..#..', '.#...', '#####', '.....'],
+
+  0: ['.###.', '#..##', '#.#.#', '##..#', '#...#', '.###.', '.....'],
+  1: ['..#..', '.##..', '..#..', '..#..', '..#..', '.###.', '.....'],
+  2: ['.###.', '#...#', '....#', '..##.', '.#...', '#####', '.....'],
+  3: ['####.', '....#', '.###.', '....#', '....#', '####.', '.....'],
+  4: ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '.....'],
+  5: ['#####', '#....', '####.', '....#', '#...#', '.###.', '.....'],
+  6: ['..##.', '.#...', '#....', '####.', '#...#', '.###.', '.....'],
+  7: ['#####', '....#', '...#.', '..#..', '..#..', '..#..', '.....'],
+  8: ['.###.', '#...#', '.###.', '#...#', '#...#', '.###.', '.....'],
+  9: ['.###.', '#...#', '#...#', '.####', '...#.', '.##..', '.....'],
+
+  '.': ['.....', '.....', '.....', '.....', '.....', '..#..', '.....'],
+  ',': ['.....', '.....', '.....', '.....', '..#..', '..#..', '.#...'],
+  '!': ['..#..', '..#..', '..#..', '..#..', '.....', '..#..', '.....'],
+  '?': ['.###.', '#...#', '...#.', '..#..', '.....', '..#..', '.....'],
+  "'": ['..#..', '..#..', '.....', '.....', '.....', '.....', '.....'],
+  '"': ['.#.#.', '.#.#.', '.....', '.....', '.....', '.....', '.....'],
+  ':': ['.....', '..#..', '.....', '.....', '..#..', '.....', '.....'],
+  ';': ['.....', '..#..', '.....', '.....', '..#..', '..#..', '.#...'],
+  '-': ['.....', '.....', '.....', '.###.', '.....', '.....', '.....'],
+  '+': ['.....', '..#..', '..#..', '#####', '..#..', '..#..', '.....'],
+  '%': ['.....', '##..#', '##.#.', '..#..', '.#.##', '#..##', '.....'],
+  $: ['..#..', '.####', '#.#..', '.###.', '..#.#', '####.', '..#..'],
+  '/': ['....#', '...#.', '..#..', '..#..', '.#...', '#....', '.....'],
+  '(': ['...#.', '..#..', '.#...', '.#...', '..#..', '...#.', '.....'],
+  ')': ['.#...', '..#..', '...#.', '...#.', '..#..', '.#...', '.....'],
+  ' ': ['.....', '.....', '.....', '.....', '.....', '.....', '.....'],
+
+  // additive extras, so a stray character in a data string never renders as
+  // the missing-frame placeholder. The renderer is not required to use them.
+  '&': ['.##..', '#..#.', '.##..', '#..#.', '#...#', '.###.', '.....'],
+  '*': ['.....', '#.#.#', '.###.', '#####', '.###.', '#.#.#', '.....'],
+  '=': ['.....', '.....', '#####', '.....', '#####', '.....', '.....'],
+  '#': ['.#.#.', '#####', '.#.#.', '.#.#.', '#####', '.#.#.', '.....'],
+  _: ['.....', '.....', '.....', '.....', '.....', '.....', '#####'],
+  '<': ['...#.', '..#..', '.#...', '.#...', '..#..', '...#.', '.....'],
+  '>': ['.#...', '..#..', '...#.', '...#.', '..#..', '.#...', '.....'],
+};
+
+const FONT_SPEC_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?\'":;-+%$/() ';
+
+/** friendly aliases so `frame('font_space')` etc. also resolve */
+const FONT_ALIAS_NAMES = {
+  ' ': 'space', '.': 'period', ',': 'comma', '!': 'bang', '?': 'question',
+  "'": 'apos', '"': 'quote', ':': 'colon', ';': 'semi', '-': 'dash',
+  '+': 'plus', '%': 'percent', $: 'dollar', '/': 'slash', '(': 'lparen',
+  ')': 'rparen', '&': 'amp', '*': 'star', '=': 'eq', '#': 'hash',
+  _: 'underscore', '<': 'lt', '>': 'gt',
+};
+
+function bakeFont() {
+  for (const [ch, rows] of Object.entries(FONT)) {
+    if (rows.length !== 7 || rows.some((r) => r.length !== 5)) {
+      throw new Error(`font glyph "${ch}" is not 5x7`);
+    }
+    sprite(`font_${ch}`, 5, 7, (c) => {
+      for (let y = 0; y < 7; y++) for (let x = 0; x < 5; x++) {
+        if (rows[y][x] === '#') c.px(x, y, P.ink);
+      }
+    }, 'font');
+    const nice = FONT_ALIAS_NAMES[ch];
+    if (nice) alias(`font_${nice}`, `font_${ch}`);
+  }
+  // lowercase -> uppercase aliases (see the header note)
+  for (let i = 0; i < 26; i++) {
+    const up = String.fromCharCode(65 + i);
+    alias(`font_${up.toLowerCase()}`, `font_${up}`);
+  }
+  // every character the SPEC demands must have a glyph
+  for (const ch of FONT_SPEC_CHARS) {
+    if (!FRAME_INDEX.has(`font_${ch}`)) throw new Error(`font is missing required char "${ch}"`);
+  }
+}
+
+// =============================================================================
+// 16. SHELF PACKER
+// =============================================================================
+
+function packShelves(recs, maxW, pad = 1) {
+  // tallest first, then widest, then by name — fully deterministic
+  const order = recs.slice().sort((a, b) =>
+    (b.canvas.h - a.canvas.h) || (b.canvas.w - a.canvas.w) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  let x = pad, y = pad, shelfH = 0, usedW = 0;
+  const placed = [];
+  for (const r of order) {
+    const w = r.canvas.w, h = r.canvas.h;
+    if (w + pad * 2 > maxW) throw new Error(`frame ${r.name} (${w}px) is wider than the atlas (${maxW}px)`);
+    if (x + w + pad > maxW) { x = pad; y += shelfH + pad; shelfH = 0; }
+    placed.push({ rec: r, x, y, w, h });
+    x += w + pad;
+    shelfH = Math.max(shelfH, h);
+    usedW = Math.max(usedW, x);
+  }
+  const height = y + shelfH + pad;
+  return { placed, width: Math.min(maxW, Math.max(8, usedW + pad - pad)), height };
+}
+
+function compose(recs, maxW) {
+  const { placed, height } = packShelves(recs, maxW);
+  // round the sheet to a tidy multiple of 8 in both axes
+  const W = maxW;
+  const H = Math.ceil(height / 8) * 8;
+  const sheet = new Canvas(W, H);
+  for (const p of placed) sheet.blit(p.rec.canvas, p.x, p.y);
+  return { sheet, placed, W, H };
+}
+
+// =============================================================================
+// 17. ANIMATIONS (SPEC §6.2 atlas.json `anims`)
+// =============================================================================
+
+const ANIM_DEFS = [
+  ['hiker_walk', 'hiker_walk_', 6, 10, true],
+  ['hiker_idle', 'hiker_idle_', 2, 2, true],
+  ['hiker_rest', 'hiker_rest_', 2, 1.5, true],
+  ['hiker_sick', 'hiker_sick_', 2, 3, true],
+  ['leader_walk', 'leader_walk_', 6, 10, true],
+  ['mule_walk', 'mule_walk_', 6, 10, true],
+  ['mule_idle', 'mule_idle_', 2, 2, true],
+  ['cart_roll', 'cart_', 4, 12, true],
+  ['campfire', 'prop_campfire_', 4, 8, true],
+  ['bear_walk', 'bear_walk_', 4, 8, true],
+  ['forager_walk', 'forager_walk_', 4, 10, true],
+  ['forager_grab', 'forager_grab_', 2, 8, false],
+  ['snake_rattle', 'snake_', 2, 5, true],
+  ['fish_swim', 'fish_', 3, 6, true],
+  ['water_flow', 'water_', 4, 8, true],
+  ['raft_bob', 'raft_', 2, 3, true],
+  ['rain_fall', 'rain_', 2, 14, true],
+  ['star_twinkle', 'star_', 2, 2, true],
+  ['key_hiker_walk', 'key_hiker_walk_', 6, 10, true],
+  ['key_hiker_idle', 'key_hiker_idle_', 2, 2, true],
+  ['key_hiker_rest', 'key_hiker_rest_', 2, 1.5, true],
+  ['key_hiker_sick', 'key_hiker_sick_', 2, 3, true],
+  ['key_leader_walk', 'key_leader_walk_', 6, 10, true],
+  ['key_forager_walk', 'key_forager_walk_', 4, 10, true],
+  ['key_forager_grab', 'key_forager_grab_', 2, 8, false],
+];
+
+// =============================================================================
+// 18. MAIN
+// =============================================================================
+
+async function main() {
+  const { ids: itemIds, source: itemSource } = await resolveItemIds();
+
+  // ---- bake everything ----
+  bakeFigures('hiker', 'hiker_', false);
+  bakeFigures('leader', 'leader_', false);
+  for (let i = 0; i < 6; i++) sprite(`mule_walk_${i}`, 24, 20, (c) => drawMule(c, (i / 6) * TAU));
+  sprite('mule_idle_0', 24, 20, (c) => drawMule(c, 0, { idle: true }));
+  sprite('mule_idle_1', 24, 20, (c) => drawMule(c, Math.PI * 0.5, { idle: true }));
+  sprite('mule_sick_0', 24, 20, (c) => drawMule(c, 0, { idle: true, sick: true }));
+  for (let i = 0; i < 4; i++) sprite(`cart_${i}`, 34, 24, (c) => drawCart(c, i));
+  bakeProps();
+  bakeLandmarks();
+  bakeItems(itemIds);
+  bakeUI();
+  bakeForage();
+  bakeFord();
+  bakeWeather();
+  // tint-key variants (never drawn as-is; source art for tintedFrame())
+  bakeFigures('hiker', 'key_hiker_', true);
+  bakeFigures('leader', 'key_leader_', true);
+  bakeFigures('forager', 'key_forager_', true);
+  bakeFont();
+
+  // ---- pack ----
+  const mainRecs = FRAMES.filter((f) => f.img === 'main');
+  const fontRecs = FRAMES.filter((f) => f.img === 'font');
+  const mainSheet = compose(mainRecs, 320);
+  const fontSheet = compose(fontRecs, 128);
+
+  // ---- atlas.json ----
+  const frames = {};
+  for (const p of mainSheet.placed) frames[p.rec.name] = { img: 'main', x: p.x, y: p.y, w: p.w, h: p.h };
+  for (const p of fontSheet.placed) frames[p.rec.name] = { img: 'font', x: p.x, y: p.y, w: p.w, h: p.h };
+  // aliases share rects with their target
+  for (const a of ALIASES) {
+    if (!frames[a.target]) throw new Error(`alias ${a.name} -> missing ${a.target}`);
+    if (frames[a.name]) throw new Error(`alias ${a.name} collides with a real frame`);
+    frames[a.name] = { ...frames[a.target] };
+  }
+  // stable key order: frames come out sorted so the JSON diff stays readable
+  const sortedFrames = {};
+  for (const k of Object.keys(frames).sort()) sortedFrames[k] = frames[k];
+
+  const anims = {};
+  for (const [name, prefix, count, fps, loop] of ANIM_DEFS) {
+    const list = [];
+    for (let i = 0; i < count; i++) {
+      const fn = `${prefix}${i}`;
+      if (!sortedFrames[fn]) throw new Error(`anim ${name} references missing frame ${fn}`);
+      list.push(fn);
+    }
+    anims[name] = { frames: list, fps, loop };
+  }
+
+  const atlas = {
+    images: { main: 'sprites/main.png', font: 'sprites/font.png' },
+    frames: sortedFrames,
+    anims,
+    tintKeys: {
+      shirt: SHIRT_KEY,
+      skin: SKIN_KEY,
+      keyPrefix: 'key_',
+      defaults: { shirt: P.shirt, skin: P.skin },
+      note:
+        'Frames named key_<frame> are identical to <frame> but with the shirt drawn in ' +
+        `${SHIRT_KEY} and the skin in ${SKIN_KEY}. Feed those to tintedFrame(name, hex) ` +
+        'and replace the two key colours per party member. They are source art only and ' +
+        'must never be blitted to the screen unrecoloured. The plain frames already ship ' +
+        `with sensible defaults (shirt ${P.shirt}, skin ${P.skin}).`,
+    },
+    meta: {
+      generator: 'scripts/bake-assets.mjs',
+      grid: 1,
+      baseW: 320,
+      baseH: 180,
+      itemIdSource: itemSource,
+      palette: {
+        ink: P.ink, inkDim: P.inkDim, night: P.night, panel: P.panel, panel2: P.panel2,
+        edge: P.edge, gold: P.gold, goldDim: P.goldDim, rust: P.rust, sage: P.sage,
+        skyIce: P.skyIce, violet: P.violet,
+      },
+      font: {
+        cell: [5, 7],
+        baselineRow: 5,
+        descenderRow: 6,
+        advance: 6,
+        lineHeight: 9,
+        lowercase: 'aliased-to-uppercase (a 4-row x-height is not legible at 5x7)',
+        aliases: 'font_space, font_period, font_comma, ... resolve to the same rects as the literal-character names',
+      },
+      sheets: {
+        main: { w: mainSheet.W, h: mainSheet.H, frames: mainSheet.placed.length },
+        font: { w: fontSheet.W, h: fontSheet.H, frames: fontSheet.placed.length },
+      },
+    },
+  };
+
+  // ---- write ----
+  fs.mkdirSync(OUT_SPRITES, { recursive: true });
+  const mainPng = encodePNG(mainSheet.W, mainSheet.H, mainSheet.sheet.data);
+  const fontPng = encodePNG(fontSheet.W, fontSheet.H, fontSheet.sheet.data);
+  fs.writeFileSync(path.join(OUT_SPRITES, 'main.png'), mainPng);
+  fs.writeFileSync(path.join(OUT_SPRITES, 'font.png'), fontPng);
+  fs.writeFileSync(path.join(OUT_ASSETS, 'atlas.json'), JSON.stringify(atlas, null, 2) + '\n');
+
+  // ---- self-check ----
+  let worst = 0;
+  for (const [name, f] of Object.entries(sortedFrames)) {
+    const sheet = f.img === 'main' ? mainSheet : fontSheet;
+    if (f.w <= 0 || f.h <= 0) throw new Error(`frame ${name} has zero size`);
+    if (f.x < 0 || f.y < 0 || f.x + f.w > sheet.W || f.y + f.h > sheet.H) {
+      throw new Error(`frame ${name} is out of bounds of ${f.img}.png`);
+    }
+    worst = Math.max(worst, f.y + f.h);
+  }
+
+  const nFrames = Object.keys(sortedFrames).length;
+  console.log(`main.png  ${mainSheet.W}x${mainSheet.H}  ${(mainPng.length / 1024).toFixed(1)} KB  (${mainSheet.placed.length} frames)`);
+  console.log(`font.png  ${fontSheet.W}x${fontSheet.H}  ${(fontPng.length / 1024).toFixed(1)} KB  (${fontSheet.placed.length} glyphs)`);
+  console.log(`atlas.json  ${nFrames} frame names (${ALIASES.length} aliases), ${Object.keys(anims).length} anims`);
+  console.log(`item icons from: ${itemSource}`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -22,9 +22,9 @@ import { makeRng, randInt, pick, weighted, chance } from './rng.js';
 // ---------------------------------------------------------------------------------
 
 export const PACES = {
-  steady:    { id: 'steady',    label: 'Steady',    base: 15, healthCost: 0, cartWear: 0.85, spirit:  0.10, blurb: 'Fifteen miles a day. You will finish the day with legs left.' },
-  strenuous: { id: 'strenuous', label: 'Strenuous', base: 20, healthCost: 2, cartWear: 1.30, spirit: -0.25, blurb: 'Twenty miles. Dawn to dusk, one long push.' },
-  grueling:  { id: 'grueling',  label: 'Grueling',  base: 25, healthCost: 5, cartWear: 2.00, spirit: -0.85, blurb: 'Twenty-five. Headlamps on at both ends of the day.' },
+  steady:    { id: 'steady',    label: 'Steady',    base: 19, healthCost: 0, cartWear: 0.85, spirit:  0.10, blurb: 'Dawn to mid-afternoon. You finish the day with legs left.' },
+  strenuous: { id: 'strenuous', label: 'Strenuous', base: 25, healthCost: 2, cartWear: 1.30, spirit: -0.25, blurb: 'Dawn to dusk, one long push, and a cold dinner.' },
+  grueling:  { id: 'grueling',  label: 'Grueling',  base: 31, healthCost: 5, cartWear: 2.00, spirit: -0.85, blurb: 'Headlamps on at both ends of the day. This breaks people.' },
 };
 
 export const RATIONS = {
@@ -55,8 +55,24 @@ export const DIFFICULTIES = {
 
 /**
  * Every tuned number in one place. These are the knobs the Monte-Carlo balance harness
- * sweeps; the values below are the ones it settled on (good ~72% win, average ~43%,
- * reckless ~10%, with snow-line / starvation / party-wipe losses all well represented).
+ * sweeps, and the values below are the ones it settled on. Measured over 400 seeds per
+ * policy, five mules, ranger, filling rations:
+ *
+ *   departure x pace     win%     median finish     dominant loss
+ *   March    strenuous    51%     day 176           the Sierra buries you (party-wipe)
+ *   April    strenuous    81%     day 172           mixed
+ *   May      strenuous    55%     day 157           the snow line catches you
+ *   May      grueling     34%     day 161           grueling costs more health than it buys
+ *   June     strenuous     2%     day 133           snowed off, almost always
+ *
+ *   player archetype     win%     notes
+ *   good                 66%      resupplies, repairs the cart, rests when sick
+ *   average              61%      same shape, thinner margins
+ *   reckless              0%      grueling + bare rations + no resupply: starves by mile 600
+ *
+ * Two properties are load-bearing and should be re-measured if these numbers move:
+ * grueling must stay *worse* than strenuous for a healthy crew, and losses must stay
+ * split between the snow line and party-wipe rather than collapsing onto one cause.
  */
 export const BALANCE = {
   // --- health ---
@@ -95,17 +111,44 @@ export const BALANCE = {
   // --- cart ---
   cartBaseCapacityLb: 160,
   cartCapacityPerMuleLb: 90,
-  breakdownBase: 0.011,
-  breakdownSlope: 0.050,   // × (1 - condition/100)
+  // Wear is the slow, boring cost of every mile. It has to be small enough that a cart
+  // maintained at towns survives a season, and large enough that ignoring it is fatal.
+  // A well-mule'd, healthy crew on good ground should beat its nominal pace; a sick
+  // crew hauling the cart themselves should crawl. These set both ends of that band.
+  muleFloor: 0.60,
+  mulePerHead: 0.10,       // x min(mules, 5)  -> 1.10 at a full string
+  healthFloor: 0.60,
+  healthRange: 0.55,       // -> 1.15 at full health
+  cartWearScale: 0.42,
+  cartFloor: 0.78,         // travel multiplier at 0% condition (was 0.70)
+  cartRestRepair: 3.5,     // condition regained per camp day — the crew has tools
+  cartRepairCostPerPoint: 0.85,   // dollars per condition point at a store
+  breakdownBase: 0.009,
+  breakdownSlope: 0.042,   // × (1 - condition/100)
   breakdownPaceMult: { steady: 0.85, strenuous: 1.0, grueling: 1.35 },
   gearFailureBase: 0.010,
+  ailmentPaceFloor: 0.68,  // the crew never drops below this from illness alone
+
+  // --- the Sierra snowpack ---
+  // The other half of the calendar. The snow line chases you from the north; the
+  // *snowpack* is already sitting on the High Sierra when you get there, and it does
+  // not melt out until mid-June. Arrive early and the passes are a different game:
+  // postholing, whiteout navigation, and creeks running at peak melt.
+  snowpackFromMile: 690,
+  snowpackToMile: 1090,
+  snowpackMeltMonth: 6,
+  snowpackMeltDay: 18,     // fully melted out by June 18
+  snowpackOnsetMonth: 5,   // meaningful snowpack before June; total before May
+  snowpackPaceMin: 0.70,   // travel multiplier at a full snowpack
+  snowpackHealth: 2.3,     // extra health drain per day at a full snowpack
+  snowpackIllness: 0.030,   // extra ailment odds per day at a full snowpack
 
   // --- snow line ---
   // Miles the snow line walks south per day, by calendar month. It is nearly idle in
   // spring, wakes up in August and slams shut in October.
-  snowRateByMonth: { 1: 30, 2: 30, 3: 4.5, 4: 4.5, 5: 4.5, 6: 5.0, 7: 5.5, 8: 8.5, 9: 13.5, 10: 21, 11: 30, 12: 30 },
+  snowRateByMonth: { 1: 30, 2: 30, 3: 4.5, 4: 4.5, 5: 4.5, 6: 5.0, 7: 5.5, 8: 8.5, 9: 12.0, 10: 20, 11: 30, 12: 30 },
   snowCloseMonth: 10,      // the snow line reaches the Northern Terminus on...
-  snowCloseDay: 12,        // ...October 12. Everything upstream is integrated from here.
+  snowCloseDay: 31,        // ...October 31. Everything upstream is integrated from here.
 
   // --- events ---
   eventChance: 0.28,       // SPEC §5.2 step 12
@@ -449,6 +492,16 @@ function rollWeather(g, force = false) {
     if (w.daysLeft > 0) return false;
   }
   const weights = weatherWeights(g);
+  const pack = snowpack(g);
+  if (pack > 0) {
+    // Snow and whiteout fog dominate; the desert kinds stop making sense up there.
+    weights.snow = num(weights.snow, 1) + 26 * pack;
+    weights.fog = num(weights.fog, 1) + 10 * pack;
+    weights.wind = num(weights.wind, 1) + 8 * pack;
+    weights.hot = num(weights.hot, 1) * (1 - 0.9 * pack);
+    weights.smoke = num(weights.smoke, 1) * (1 - 0.9 * pack);
+    weights.clear = num(weights.clear, 1) * (1 - 0.45 * pack);
+  }
   const kind = weighted(g.rng, WEATHERS, (k) => weights[k]) || 'clear';
   const r = g.rng();
   const severity = round2(kind === 'clear' ? 0.05 + r * 0.2 : 0.2 + r * r * 0.8);
@@ -461,6 +514,35 @@ function rollWeather(g, force = false) {
   };
   return true;
 }
+
+/**
+ * How buried the High Sierra is right now, 0..1.
+ *
+ * 1 = March, everything above 10,000 ft is a snowfield with a trail somewhere under it.
+ * 0 = after June 18, or anywhere outside the high country.
+ * The curve is linear in days from May 1 to the melt-out date, so every week you wait
+ * at Kennedy Meadows buys a real, legible improvement.
+ */
+export function snowpack(g) {
+  if (!g) return 0;
+  const mile = num(g.mile);
+  if (mile < BALANCE.snowpackFromMile || mile > BALANCE.snowpackToMile) return 0;
+
+  const meltOrdinal = ordinal({ year: g.date.year, month: BALANCE.snowpackMeltMonth, day: BALANCE.snowpackMeltDay });
+  const onsetOrdinal = ordinal({ year: g.date.year, month: BALANCE.snowpackOnsetMonth, day: 1 });
+  const today = ordinal(g.date);
+  if (today >= meltOrdinal) return 0;
+
+  const frac = today <= onsetOrdinal ? 1 : (meltOrdinal - today) / Math.max(1, meltOrdinal - onsetOrdinal);
+
+  // Only the genuinely high ground holds it — the approach miles are just cold.
+  const elev = num(elevAtMile(mile), 0);
+  const altitude = clamp((elev - 7500) / 3500, 0, 1);
+  return round2(clamp(frac, 0, 1) * altitude);
+}
+
+/** True when the crew is in the high country before it has melted out. */
+export function inSnowpack(g) { return snowpack(g) > 0.08; }
 
 function weatherSpeedFactor(g) {
   const base = num(WEATHER_SPEED[g.weather.kind], 1);
@@ -627,10 +709,10 @@ function travelDistance(g) {
   const pace = PACES[g.pace] || PACES.steady;
   const base = pace.base;
   const terrain = clamp(num(terrainFactor(g.mile), 1), 0.5, 1.3);
-  const muleFactor = 0.55 + 0.09 * Math.min(num(g.supplies.mules), 5);
-  const healthFactor = 0.55 + 0.55 * clamp(meanHealth(g) / 100, 0, 1);
+  const muleFactor = BALANCE.muleFloor + BALANCE.mulePerHead * Math.min(num(g.supplies.mules), 5);
+  const healthFactor = BALANCE.healthFloor + BALANCE.healthRange * clamp(meanHealth(g) / 100, 0, 1);
   const wFactor = weatherSpeedFactor(g);
-  const cartFactor = 0.7 + 0.3 * clamp(num(g.cart.condition) / 100, 0, 1);
+  const cartFactor = BALANCE.cartFloor + (1 - BALANCE.cartFloor) * clamp(num(g.cart.condition) / 100, 0, 1);
 
   let m = base * terrain * muleFactor * healthFactor * wFactor * cartFactor;
 
@@ -644,7 +726,11 @@ function travelDistance(g) {
       ailMult *= clamp(num(AILMENTS_BY_ID[a.id]?.paceMult, 1), 0.5, 1);
     }
   }
-  m *= clamp(ailMult, 0.55, 1);
+  m *= clamp(ailMult, BALANCE.ailmentPaceFloor, 1);
+
+  // Postholing through rotten spring snow is the slowest walking there is.
+  const pack = snowpack(g);
+  if (pack > 0) m *= 1 - (1 - BALANCE.snowpackPaceMin) * pack;
 
   if (meanSpirit(g) < BALANCE.spiritLowThreshold) m *= BALANCE.spiritPacePenalty;
 
@@ -684,6 +770,10 @@ function tickHealth(g, rep, { resting }) {
   const healRate = num(perk(g, 'healRate', 0));
   const puffy = getQty(g, 'puffy') > 0;
   const clothing = getQty(g, 'clothing');
+  const pack = snowpack(g);
+  // An ice axe does not keep you warm, but it is the difference between a crossing and
+  // a fall, and the crew that has one is not spending the day terrified.
+  const packCost = pack * BALANCE.snowpackHealth * (getQty(g, 'ice_axe') > 0 ? 0.55 : 1);
 
   for (const m of livingParty(g)) {
     let d = BALANCE.regenRange * (1 - clamp(m.health, 0, 100) / 100) + BALANCE.regenBase;
@@ -704,6 +794,7 @@ function tickHealth(g, rep, { resting }) {
     }
     d -= cold;
     d -= altCost;
+    if (packCost > 0) d -= packCost * (resting ? 0.5 : 1);
     for (const a of m.ailments || []) d -= num(AILMENTS_BY_ID[a.id]?.healthDrainPerDay, 0);
     if (over > 1) d -= BALANCE.overloadDrain * Math.min(over - 1, 2);
     if (m.spirit < BALANCE.spiritLowThreshold) d -= BALANCE.lowSpiritDrain;
@@ -777,6 +868,7 @@ function onsetChance(g, m) {
   if (w === 'hot' || w === 'smoke') p += BALANCE.onsetWeatherBonus * 0.6 * clamp(num(g.weather.severity, 0.5), 0, 1);
   if (num(elevAtMile(g.mile), 0) > 10000) p += BALANCE.onsetAltitudeBonus;
   if (g.starving) p += BALANCE.onsetStarveBonus;
+  p += snowpack(g) * BALANCE.snowpackIllness;   // wet feet and cold nights, for weeks
   if (getQty(g, 'first_aid') > 0) p *= 0.92;
   return clamp(p * diff.illnessMult, 0, 0.6);
 }
@@ -852,7 +944,7 @@ function tickCart(g, rep) {
   const sev = clamp(num(g.weather.severity, 0.4), 0, 1);
   const over = overloadRatio(g);
 
-  let wear = pace.cartWear * rough * (1 + sev * 0.25);
+  let wear = pace.cartWear * BALANCE.cartWearScale * rough * (1 + sev * 0.25);
   if (over > 1) wear *= 1 + (over - 1) * 0.8;
   g.cart.condition = clamp(round2(g.cart.condition - wear), 0, 100);
 
@@ -1012,7 +1104,11 @@ function passDays(g, n, { resting = true, reason = 'rest' } = {}) {
     g.day += 1;
     g.date = addDays(g.date, 1);
     g.stats.daysOnTrail += 1;
-    if (resting) g.stats.restDays += 1;
+    if (resting) {
+      g.stats.restDays += 1;
+      // A layover is also a maintenance day — this is the crew's only free repair.
+      g.cart.condition = clamp(round2(g.cart.condition + BALANCE.cartRestRepair), 0, 100);
+    }
     rollWeather(g);
     const rep = emptyReport();
     consumeFood(g, rep);
@@ -1029,6 +1125,37 @@ function passDays(g, n, { resting = true, reason = 'rest' } = {}) {
   out.ended = g.status !== 'playing';
   syncRng(g);
   return out;
+}
+
+/**
+ * Pay somebody with a workshop to true the wheels and re-tension the frame.
+ * Only worth doing where there is a road, which is exactly where the stores are.
+ * @returns {{ok:boolean, reason?:string, cost?:number, restored?:number}}
+ */
+export function repairCart(g, mult = 1) {
+  try {
+    if (!g || g.status !== 'playing') return { ok: false, reason: 'The run is over.' };
+    const missing = 100 - num(g.cart.condition);
+    if (missing < 1) return { ok: false, reason: 'The cart is already sound.' };
+    const rate = BALANCE.cartRepairCostPerPoint * (Number(mult) || 1);
+    const money = num(g.supplies.money);
+    if (money < rate) return { ok: false, reason: 'You cannot afford even an hour of their time.' };
+    // Spend what you have, up to a full restoration.
+    const points = Math.min(missing, Math.floor(money / rate));
+    const cost = round2(points * rate);
+    g.supplies.money = round2(money - cost);
+    g.stats.moneySpent = round2(g.stats.moneySpent + cost);
+    g.cart.condition = clamp(round2(g.cart.condition + points), 0, 100);
+    if (g.cart.parts) for (const k of Object.keys(g.cart.parts)) g.cart.parts[k] = Math.max(g.cart.parts[k], g.cart.condition);
+    logLine(g, 'store', `$${cost.toFixed(2)} of work on the cart. It rolls at ${Math.round(g.cart.condition)}%.`);
+    return { ok: true, cost, restored: points };
+  } catch { return { ok: false, reason: 'Nobody here works on carts.' }; }
+}
+
+/** What a full repair would cost here, for the store UI. */
+export function repairQuote(g, mult = 1) {
+  const missing = Math.max(0, 100 - num(g?.cart?.condition));
+  return round2(missing * BALANCE.cartRepairCostPerPoint * (Number(mult) || 1));
 }
 
 /** Camp for n days: no miles, better recovery, morale up, snow line keeps coming. */
@@ -1286,6 +1413,8 @@ export function fordRisk(g, method) {
   const flow = num(FORD_FLOW[f.flow], 0.26);
   const depth = clamp(num(f.depthFt, 3) / 6, 0, 1.4);
   let risk = flow * (0.55 + depth);
+  // Peak snowmelt: the same creek is a different creek in May than it is in August.
+  risk *= 1 + 0.8 * snowpack(g);
   if (f.waited) risk *= 0.72;
   if (method === 'rock-hop') risk *= 0.45;
   else if (method === 'raft') risk *= 0.75;
@@ -1468,7 +1597,16 @@ export function serialize(g) {
 
 /** Rebuild a game from `serialize` output, restoring the exact RNG stream position. */
 export function deserialize(json) {
-  const o = typeof json === 'string' ? JSON.parse(json) : (json && typeof json === 'object' ? { ...json } : null);
+  // A save file is user-controlled input and may be truncated, hand-edited or garbage.
+  // Loading one must never throw — a corrupt save reads as "no save", not as a crash.
+  let o = null;
+  if (typeof json === 'string') {
+    try { o = JSON.parse(json); } catch { return null; }
+    if (!o || typeof o !== 'object') return null;
+    o = { ...o };
+  } else if (json && typeof json === 'object') {
+    o = { ...json };
+  }
   if (!o) return null;
   o.version = num(o.version, 1);
   o.seed = (num(o.seed) >>> 0);

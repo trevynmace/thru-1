@@ -13,7 +13,7 @@ export const ITEMS = [
     id: 'food',
     name: 'Trail Food',
     unit: 'lb',
-    price: 0.42,
+    price: 0.30,
     weightLb: 1,
     category: 'food',
     icon: 'item_food',

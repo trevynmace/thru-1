@@ -13,7 +13,8 @@ import { loadAtlas, BASE_W, BASE_H } from '../render/atlas.js';
 import { createScene } from '../render/scene.js';
 import { createFx } from '../render/fx.js';
 import { Audio } from '../audio/audio.js';
-import { TOTAL_MILES, LANDMARKS, nextLandmark, lastLandmark, biomeAtMile, elevAtMile } from '../../../data/trail.js';
+import { TOTAL_MILES, LANDMARKS, nextLandmark, biomeAtMile, elevAtMile } from '../../../data/trail.js';
+import { OCCUPATIONS } from '../../../data/party.js';
 
 import * as ScreenMenu from './screens/menu.js';
 import * as ScreenSetup from './screens/setup.js';
@@ -105,6 +106,10 @@ export async function init() {
   // Expose a tiny surface for the headless playtest harness. Not used by the game.
   window.NB = {
     go, get game() { return state.game; }, startGame, ctx: makeCtx(),
+    isTravelling: () => state.travelling,
+    // The router's own idea of the current screen. Modal screens layer *over* the trail
+    // HUD, so reading `.screen.active` from the DOM can report the one underneath.
+    get screen() { return state.screen; },
     version: 1,
   };
 }
@@ -138,16 +143,20 @@ function frame(now) {
   if (state.walking) state.scroll += dt * 34;
   s.scroll = state.scroll;
 
-  try {
-    state.scene.render(s, dt);
-    state.fx.update(dt);
-    const octx = state.overlayCtx;
-    octx.clearRect(0, 0, BASE_W, BASE_H);
-    state.fx.draw(octx);
-  } catch (err) {
-    // A render fault must never take the game down; stop the loop and say so once.
-    cancelAnimationFrame(state.raf);
-    console.error('[northbound] render loop stopped', err);
+  // A render fault must never take the game down — the travel loop below is driven
+  // from this same frame callback, so killing it would freeze the whole game. Drop the
+  // scene, keep the loop, and say so exactly once.
+  if (!state.renderBroken) {
+    try {
+      state.scene.render(s, dt);
+      state.fx.update(dt);
+      const octx = state.overlayCtx;
+      octx.clearRect(0, 0, BASE_W, BASE_H);
+      state.fx.draw(octx);
+    } catch (err) {
+      state.renderBroken = true;
+      console.error('[northbound] scene rendering disabled after an error', err);
+    }
   }
 
   if (state.travelling) {
@@ -486,7 +495,9 @@ function weatherLabel(g) {
 
 function occupationLabel(g) {
   const occ = g.leader.occupation;
-  return typeof occ === 'string' ? occ : (occ && occ.name) || '';
+  if (occ && typeof occ === 'object') return occ.name || '';
+  const found = OCCUPATIONS.find((o) => o.id === occ);
+  return found ? found.name : String(occ || '');
 }
 
 // -------------------------------------------------------------- journal ----

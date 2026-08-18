@@ -149,9 +149,10 @@ export function party(ctx) {
                   ? el('div.inline', { style: { marginTop: '8px' } }, meds.map((id) => button(
                       `Use ${ITEMS_BY_ID[id].name}`,
                       () => {
-                        const res = ctx.Sim.useItem(g, id, i);
-                        Audio.sfx(res && res.ok ? 'pickup' : 'error');
-                        if (res && res.text) ctx.toast(res.text, res.ok ? 'good' : 'bad');
+                        const res = ctx.Sim.useItem(g, id, i) || {};
+                        Audio.sfx(res.ok ? 'pickup' : 'error');
+                        ctx.toast(res.ok ? (res.lines || []).join(' ') || 'That helps.' : (res.reason || 'That did not work.'),
+                          res.ok ? 'good' : 'bad');
                         ctx.refreshHud();
                         render();
                       },

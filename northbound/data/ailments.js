@@ -212,7 +212,7 @@ export const AILMENTS = [
     curedBy: ['first_aid'],
     onsetText: "{name}'s achilles has swollen into a rope you can see through the sock, and it creaks. Actually creaks.",
     recoverText: "Heel lifts cut from a sleeping pad, easy miles, and time. The creaking stops and {name} stops thinking about it.",
-    deathText: "The leg gave out on a traverse above {landmark} and there was nothing under it but scree.",
+    deathText: "{name}'s leg gave out on a traverse above {landmark}, and there was nothing under it but scree.",
     weather: null,
     biomes: null,
   },

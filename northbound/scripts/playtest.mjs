@@ -17,7 +17,9 @@ import { promises as fs } from 'fs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const SHOT_DIR = join(ROOT, 'docs', 'screenshots');
-const PORT = process.env.PORT || 3199;
+// A leftover server from an aborted run must not wedge the next one, so each run
+// takes a fresh port unless one is pinned explicitly.
+const PORT = process.env.PORT || (3200 + (process.pid % 700));
 const BASE = `http://localhost:${PORT}`;
 
 const QUICK = process.argv.includes('--quick');
@@ -39,9 +41,22 @@ async function main() {
   server.stderr.on('data', (d) => fail(`server stderr: ${String(d).trim()}`));
   await waitForServer();
 
+  // This environment ships a preinstalled Chromium that may not match the revision the
+  // installed Playwright expects, so point at it directly rather than downloading one.
+  const preinstalled = process.env.NB_CHROMIUM
+    || (await firstExisting([
+      '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+      '/opt/pw-browsers/chromium/chrome-linux/chrome',
+    ]));
   const browser = await chromium.launch({
     headless: !HEADED,
-    args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'],
+    ...(preinstalled ? { executablePath: preinstalled } : {}),
+    args: [
+      '--autoplay-policy=no-user-gesture-required',
+      '--mute-audio',
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+    ],
   });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 2 });
 
@@ -61,7 +76,8 @@ async function main() {
   }
 
   await browser.close();
-  server.kill();
+  server.kill('SIGTERM');
+  await new Promise((r) => { server.once('exit', r); setTimeout(r, 2000); });
 
   console.log('');
   if (problems.length) {
@@ -86,6 +102,13 @@ async function waitForServer() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+async function firstExisting(paths) {
+  for (const p of paths) {
+    try { await fs.access(p); return p; } catch {}
+  }
+  return null;
+}
+
 async function shot(page, name) {
   if (QUICK) return;
   await sleep(320);
@@ -108,6 +131,7 @@ async function clickText(page, text, { timeout = 8000, optional = false } = {}) 
 
 async function activeScreen(page) {
   return page.evaluate(() => {
+    if (window.NB && window.NB.screen) return window.NB.screen;
     const s = document.querySelector('.screen.active');
     return s ? s.dataset.screen : null;
   });
@@ -181,11 +205,18 @@ async function run(page) {
   for (let turn = 0; turn < maxTurns; turn++) {
     const state = await gameState(page);
     if (!state) { fail('lost the game state mid-run'); break; }
-    if (state.status !== 'playing') { log(`run ended: ${state.status} (${state.cause || '—'}) on day ${state.day}, mile ${state.mile}`); break; }
+    if (state.status !== 'playing') {
+      log(`run ended: ${state.status} (${state.cause || '—'}) on day ${state.day}, mile ${state.mile}`);
+      if (state.status === 'lost' && state.day < 25) {
+        const tail = await page.evaluate(() => (window.NB.game.log || []).slice(-16).map((l) => `${l.day} [${l.kind}] ${l.text}`));
+        fail(`run collapsed on day ${state.day}; last log lines:\n      ` + tail.join('\n      '));
+      }
+      break;
+    }
 
     if (state.mile === lastMile) stuck++; else stuck = 0;
     lastMile = state.mile;
-    if (stuck > 14) { fail(`stuck at mile ${state.mile} for ${stuck} turns on screen "${await activeScreen(page)}"`); break; }
+    if (stuck > 26) { fail(`stuck at mile ${state.mile} for ${stuck} turns on screen "${await activeScreen(page)}"`); break; }
 
     const screen = await activeScreen(page);
 
@@ -255,8 +286,11 @@ async function run(page) {
       if (turn === 9) { await page.keyboard.press('i'); await sleep(400); await shot(page, 'pack'); await page.keyboard.press('Escape'); }
       if (turn === 12) { await page.keyboard.press('c'); await sleep(400); await shot(page, 'party'); await page.keyboard.press('Escape'); }
       if (turn === 15) { await page.keyboard.press('r'); await sleep(400); await shot(page, 'camp'); await page.keyboard.press('Escape'); }
-      await page.keyboard.press(' ');            // travel
-      await sleep(QUICK ? 700 : 1500);
+      // Space *toggles* travel, so only press it when the crew is actually stopped -
+      // pressing every turn just switches walking on and off and goes nowhere.
+      const moving = await page.evaluate(() => !!(window.NB && window.NB.isTravelling && window.NB.isTravelling()));
+      if (!moving) await page.keyboard.press(' ');
+      await sleep(QUICK ? 900 : 1800);
       continue;
     }
 

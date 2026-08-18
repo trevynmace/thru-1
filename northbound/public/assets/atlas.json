@@ -1,0 +1,2202 @@
+{
+  "images": {
+    "main": "sprites/main.png",
+    "font": "sprites/font.png"
+  },
+  "frames": {
+    "bear_walk_0": {
+      "img": "main",
+      "x": 181,
+      "y": 160,
+      "w": 28,
+      "h": 18
+    },
+    "bear_walk_1": {
+      "img": "main",
+      "x": 210,
+      "y": 160,
+      "w": 28,
+      "h": 18
+    },
+    "bear_walk_2": {
+      "img": "main",
+      "x": 239,
+      "y": 160,
+      "w": 28,
+      "h": 18
+    },
+    "bear_walk_3": {
+      "img": "main",
+      "x": 268,
+      "y": 160,
+      "w": 28,
+      "h": 18
+    },
+    "berry_0": {
+      "img": "main",
+      "x": 1,
+      "y": 230,
+      "w": 9,
+      "h": 9
+    },
+    "berry_1": {
+      "img": "main",
+      "x": 11,
+      "y": 230,
+      "w": 9,
+      "h": 9
+    },
+    "berry_2": {
+      "img": "main",
+      "x": 21,
+      "y": 230,
+      "w": 9,
+      "h": 9
+    },
+    "cart_0": {
+      "img": "main",
+      "x": 77,
+      "y": 83,
+      "w": 34,
+      "h": 24
+    },
+    "cart_1": {
+      "img": "main",
+      "x": 112,
+      "y": 83,
+      "w": 34,
+      "h": 24
+    },
+    "cart_2": {
+      "img": "main",
+      "x": 147,
+      "y": 83,
+      "w": 34,
+      "h": 24
+    },
+    "cart_3": {
+      "img": "main",
+      "x": 182,
+      "y": 83,
+      "w": 34,
+      "h": 24
+    },
+    "cloud_0": {
+      "img": "main",
+      "x": 286,
+      "y": 215,
+      "w": 26,
+      "h": 9
+    },
+    "cloud_1": {
+      "img": "main",
+      "x": 128,
+      "y": 215,
+      "w": 34,
+      "h": 11
+    },
+    "cloud_2": {
+      "img": "main",
+      "x": 267,
+      "y": 230,
+      "w": 20,
+      "h": 7
+    },
+    "cloud_3": {
+      "img": "main",
+      "x": 16,
+      "y": 215,
+      "w": 42,
+      "h": 13
+    },
+    "fish_0": {
+      "img": "main",
+      "x": 92,
+      "y": 230,
+      "w": 13,
+      "h": 8
+    },
+    "fish_1": {
+      "img": "main",
+      "x": 106,
+      "y": 230,
+      "w": 13,
+      "h": 8
+    },
+    "fish_2": {
+      "img": "main",
+      "x": 120,
+      "y": 230,
+      "w": 13,
+      "h": 8
+    },
+    "font_ ": {
+      "img": "font",
+      "x": 1,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_!": {
+      "img": "font",
+      "x": 7,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_\"": {
+      "img": "font",
+      "x": 13,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_#": {
+      "img": "font",
+      "x": 19,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_$": {
+      "img": "font",
+      "x": 25,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_%": {
+      "img": "font",
+      "x": 31,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_&": {
+      "img": "font",
+      "x": 37,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_'": {
+      "img": "font",
+      "x": 43,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_(": {
+      "img": "font",
+      "x": 49,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_)": {
+      "img": "font",
+      "x": 55,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_*": {
+      "img": "font",
+      "x": 61,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_+": {
+      "img": "font",
+      "x": 67,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_,": {
+      "img": "font",
+      "x": 73,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_-": {
+      "img": "font",
+      "x": 79,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_.": {
+      "img": "font",
+      "x": 85,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_/": {
+      "img": "font",
+      "x": 91,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_0": {
+      "img": "font",
+      "x": 97,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_1": {
+      "img": "font",
+      "x": 103,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_2": {
+      "img": "font",
+      "x": 109,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_3": {
+      "img": "font",
+      "x": 115,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_4": {
+      "img": "font",
+      "x": 121,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_5": {
+      "img": "font",
+      "x": 1,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_6": {
+      "img": "font",
+      "x": 7,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_7": {
+      "img": "font",
+      "x": 13,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_8": {
+      "img": "font",
+      "x": 19,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_9": {
+      "img": "font",
+      "x": 25,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_:": {
+      "img": "font",
+      "x": 31,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_;": {
+      "img": "font",
+      "x": 37,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_<": {
+      "img": "font",
+      "x": 43,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_=": {
+      "img": "font",
+      "x": 49,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_>": {
+      "img": "font",
+      "x": 55,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_?": {
+      "img": "font",
+      "x": 61,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_A": {
+      "img": "font",
+      "x": 67,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_B": {
+      "img": "font",
+      "x": 73,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_C": {
+      "img": "font",
+      "x": 79,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_D": {
+      "img": "font",
+      "x": 85,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_E": {
+      "img": "font",
+      "x": 91,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_F": {
+      "img": "font",
+      "x": 97,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_G": {
+      "img": "font",
+      "x": 103,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_H": {
+      "img": "font",
+      "x": 109,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_I": {
+      "img": "font",
+      "x": 115,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_J": {
+      "img": "font",
+      "x": 121,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_K": {
+      "img": "font",
+      "x": 1,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_L": {
+      "img": "font",
+      "x": 7,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_M": {
+      "img": "font",
+      "x": 13,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_N": {
+      "img": "font",
+      "x": 19,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_O": {
+      "img": "font",
+      "x": 25,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_P": {
+      "img": "font",
+      "x": 31,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_Q": {
+      "img": "font",
+      "x": 37,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_R": {
+      "img": "font",
+      "x": 43,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_S": {
+      "img": "font",
+      "x": 49,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_T": {
+      "img": "font",
+      "x": 55,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_U": {
+      "img": "font",
+      "x": 61,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_V": {
+      "img": "font",
+      "x": 67,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_W": {
+      "img": "font",
+      "x": 73,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_X": {
+      "img": "font",
+      "x": 79,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_Y": {
+      "img": "font",
+      "x": 85,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_Z": {
+      "img": "font",
+      "x": 91,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font__": {
+      "img": "font",
+      "x": 97,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_a": {
+      "img": "font",
+      "x": 67,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_amp": {
+      "img": "font",
+      "x": 37,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_apos": {
+      "img": "font",
+      "x": 43,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_b": {
+      "img": "font",
+      "x": 73,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_bang": {
+      "img": "font",
+      "x": 7,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_c": {
+      "img": "font",
+      "x": 79,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_colon": {
+      "img": "font",
+      "x": 31,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_comma": {
+      "img": "font",
+      "x": 73,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_d": {
+      "img": "font",
+      "x": 85,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_dash": {
+      "img": "font",
+      "x": 79,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_dollar": {
+      "img": "font",
+      "x": 25,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_e": {
+      "img": "font",
+      "x": 91,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_eq": {
+      "img": "font",
+      "x": 49,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_f": {
+      "img": "font",
+      "x": 97,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_g": {
+      "img": "font",
+      "x": 103,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_gt": {
+      "img": "font",
+      "x": 55,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_h": {
+      "img": "font",
+      "x": 109,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_hash": {
+      "img": "font",
+      "x": 19,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_i": {
+      "img": "font",
+      "x": 115,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_j": {
+      "img": "font",
+      "x": 121,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_k": {
+      "img": "font",
+      "x": 1,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_l": {
+      "img": "font",
+      "x": 7,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_lparen": {
+      "img": "font",
+      "x": 49,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_lt": {
+      "img": "font",
+      "x": 43,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_m": {
+      "img": "font",
+      "x": 13,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_n": {
+      "img": "font",
+      "x": 19,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_o": {
+      "img": "font",
+      "x": 25,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_p": {
+      "img": "font",
+      "x": 31,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_percent": {
+      "img": "font",
+      "x": 31,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_period": {
+      "img": "font",
+      "x": 85,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_plus": {
+      "img": "font",
+      "x": 67,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_q": {
+      "img": "font",
+      "x": 37,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_question": {
+      "img": "font",
+      "x": 61,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_quote": {
+      "img": "font",
+      "x": 13,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_r": {
+      "img": "font",
+      "x": 43,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_rparen": {
+      "img": "font",
+      "x": 55,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_s": {
+      "img": "font",
+      "x": 49,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_semi": {
+      "img": "font",
+      "x": 37,
+      "y": 9,
+      "w": 5,
+      "h": 7
+    },
+    "font_slash": {
+      "img": "font",
+      "x": 91,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_space": {
+      "img": "font",
+      "x": 1,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_star": {
+      "img": "font",
+      "x": 61,
+      "y": 1,
+      "w": 5,
+      "h": 7
+    },
+    "font_t": {
+      "img": "font",
+      "x": 55,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_u": {
+      "img": "font",
+      "x": 61,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_underscore": {
+      "img": "font",
+      "x": 97,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_v": {
+      "img": "font",
+      "x": 67,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_w": {
+      "img": "font",
+      "x": 73,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_x": {
+      "img": "font",
+      "x": 79,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_y": {
+      "img": "font",
+      "x": 85,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "font_z": {
+      "img": "font",
+      "x": 91,
+      "y": 17,
+      "w": 5,
+      "h": 7
+    },
+    "forager_grab_0": {
+      "img": "main",
+      "x": 1,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "forager_grab_1": {
+      "img": "main",
+      "x": 16,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "forager_walk_0": {
+      "img": "main",
+      "x": 31,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "forager_walk_1": {
+      "img": "main",
+      "x": 46,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "forager_walk_2": {
+      "img": "main",
+      "x": 61,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "forager_walk_3": {
+      "img": "main",
+      "x": 76,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "hiker_dead_0": {
+      "img": "main",
+      "x": 217,
+      "y": 83,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_idle_0": {
+      "img": "main",
+      "x": 234,
+      "y": 83,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_idle_1": {
+      "img": "main",
+      "x": 251,
+      "y": 83,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_rest_0": {
+      "img": "main",
+      "x": 268,
+      "y": 83,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_rest_1": {
+      "img": "main",
+      "x": 285,
+      "y": 83,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_sick_0": {
+      "img": "main",
+      "x": 302,
+      "y": 83,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_sick_1": {
+      "img": "main",
+      "x": 1,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_walk_0": {
+      "img": "main",
+      "x": 18,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_walk_1": {
+      "img": "main",
+      "x": 35,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_walk_2": {
+      "img": "main",
+      "x": 52,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_walk_3": {
+      "img": "main",
+      "x": 69,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_walk_4": {
+      "img": "main",
+      "x": 86,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "hiker_walk_5": {
+      "img": "main",
+      "x": 103,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "item_bear_can": {
+      "img": "main",
+      "x": 160,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_blister_kit": {
+      "img": "main",
+      "x": 177,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_camp_chair": {
+      "img": "main",
+      "x": 194,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_clothing": {
+      "img": "main",
+      "x": 211,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_electrolytes": {
+      "img": "main",
+      "x": 228,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_first_aid": {
+      "img": "main",
+      "x": 245,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_food": {
+      "img": "main",
+      "x": 262,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_harmonica": {
+      "img": "main",
+      "x": 279,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_ice_axe": {
+      "img": "main",
+      "x": 296,
+      "y": 181,
+      "w": 16,
+      "h": 16
+    },
+    "item_mule": {
+      "img": "main",
+      "x": 1,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_paperback": {
+      "img": "main",
+      "x": 18,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_puffy": {
+      "img": "main",
+      "x": 35,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_spare_axle": {
+      "img": "main",
+      "x": 52,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_spare_filter": {
+      "img": "main",
+      "x": 69,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_spare_hitch": {
+      "img": "main",
+      "x": 86,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_spare_poles": {
+      "img": "main",
+      "x": 103,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_spare_soles": {
+      "img": "main",
+      "x": 120,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_spare_wheel": {
+      "img": "main",
+      "x": 137,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_stove_fuel": {
+      "img": "main",
+      "x": 154,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "item_water_carry": {
+      "img": "main",
+      "x": 171,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "key_forager_grab_0": {
+      "img": "main",
+      "x": 91,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "key_forager_grab_1": {
+      "img": "main",
+      "x": 106,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "key_forager_walk_0": {
+      "img": "main",
+      "x": 121,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "key_forager_walk_1": {
+      "img": "main",
+      "x": 136,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "key_forager_walk_2": {
+      "img": "main",
+      "x": 151,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "key_forager_walk_3": {
+      "img": "main",
+      "x": 166,
+      "y": 160,
+      "w": 14,
+      "h": 20
+    },
+    "key_hiker_idle_0": {
+      "img": "main",
+      "x": 120,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_idle_1": {
+      "img": "main",
+      "x": 137,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_rest_0": {
+      "img": "main",
+      "x": 154,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_rest_1": {
+      "img": "main",
+      "x": 171,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_sick_0": {
+      "img": "main",
+      "x": 188,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_sick_1": {
+      "img": "main",
+      "x": 205,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_walk_0": {
+      "img": "main",
+      "x": 222,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_walk_1": {
+      "img": "main",
+      "x": 239,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_walk_2": {
+      "img": "main",
+      "x": 256,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_walk_3": {
+      "img": "main",
+      "x": 273,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_walk_4": {
+      "img": "main",
+      "x": 290,
+      "y": 110,
+      "w": 16,
+      "h": 24
+    },
+    "key_hiker_walk_5": {
+      "img": "main",
+      "x": 1,
+      "y": 135,
+      "w": 16,
+      "h": 24
+    },
+    "key_leader_walk_0": {
+      "img": "main",
+      "x": 156,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "key_leader_walk_1": {
+      "img": "main",
+      "x": 175,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "key_leader_walk_2": {
+      "img": "main",
+      "x": 194,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "key_leader_walk_3": {
+      "img": "main",
+      "x": 213,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "key_leader_walk_4": {
+      "img": "main",
+      "x": 232,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "key_leader_walk_5": {
+      "img": "main",
+      "x": 251,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "leader_walk_0": {
+      "img": "main",
+      "x": 270,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "leader_walk_1": {
+      "img": "main",
+      "x": 289,
+      "y": 42,
+      "w": 18,
+      "h": 26
+    },
+    "leader_walk_2": {
+      "img": "main",
+      "x": 1,
+      "y": 83,
+      "w": 18,
+      "h": 26
+    },
+    "leader_walk_3": {
+      "img": "main",
+      "x": 20,
+      "y": 83,
+      "w": 18,
+      "h": 26
+    },
+    "leader_walk_4": {
+      "img": "main",
+      "x": 39,
+      "y": 83,
+      "w": 18,
+      "h": 26
+    },
+    "leader_walk_5": {
+      "img": "main",
+      "x": 58,
+      "y": 83,
+      "w": 18,
+      "h": 26
+    },
+    "lm_falls": {
+      "img": "main",
+      "x": 1,
+      "y": 1,
+      "w": 48,
+      "h": 40
+    },
+    "lm_firetower": {
+      "img": "main",
+      "x": 50,
+      "y": 1,
+      "w": 48,
+      "h": 40
+    },
+    "lm_ford": {
+      "img": "main",
+      "x": 99,
+      "y": 1,
+      "w": 48,
+      "h": 40
+    },
+    "lm_lake": {
+      "img": "main",
+      "x": 148,
+      "y": 1,
+      "w": 48,
+      "h": 40
+    },
+    "lm_lodge": {
+      "img": "main",
+      "x": 197,
+      "y": 1,
+      "w": 48,
+      "h": 40
+    },
+    "lm_monument": {
+      "img": "main",
+      "x": 246,
+      "y": 1,
+      "w": 48,
+      "h": 40
+    },
+    "lm_pass": {
+      "img": "main",
+      "x": 1,
+      "y": 42,
+      "w": 48,
+      "h": 40
+    },
+    "lm_town": {
+      "img": "main",
+      "x": 50,
+      "y": 42,
+      "w": 48,
+      "h": 40
+    },
+    "moon": {
+      "img": "main",
+      "x": 188,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "mule_idle_0": {
+      "img": "main",
+      "x": 48,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_idle_1": {
+      "img": "main",
+      "x": 73,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_sick_0": {
+      "img": "main",
+      "x": 98,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_walk_0": {
+      "img": "main",
+      "x": 123,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_walk_1": {
+      "img": "main",
+      "x": 148,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_walk_2": {
+      "img": "main",
+      "x": 173,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_walk_3": {
+      "img": "main",
+      "x": 198,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_walk_4": {
+      "img": "main",
+      "x": 223,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mule_walk_5": {
+      "img": "main",
+      "x": 248,
+      "y": 135,
+      "w": 24,
+      "h": 20
+    },
+    "mushroom_0": {
+      "img": "main",
+      "x": 244,
+      "y": 215,
+      "w": 10,
+      "h": 10
+    },
+    "mushroom_1": {
+      "img": "main",
+      "x": 255,
+      "y": 215,
+      "w": 10,
+      "h": 10
+    },
+    "mushroom_2": {
+      "img": "main",
+      "x": 266,
+      "y": 215,
+      "w": 10,
+      "h": 10
+    },
+    "prop_boulder_0": {
+      "img": "main",
+      "x": 163,
+      "y": 215,
+      "w": 16,
+      "h": 11
+    },
+    "prop_boulder_1": {
+      "img": "main",
+      "x": 296,
+      "y": 198,
+      "w": 22,
+      "h": 14
+    },
+    "prop_cairn": {
+      "img": "main",
+      "x": 273,
+      "y": 198,
+      "w": 12,
+      "h": 16
+    },
+    "prop_campfire_0": {
+      "img": "main",
+      "x": 205,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "prop_campfire_1": {
+      "img": "main",
+      "x": 222,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "prop_campfire_2": {
+      "img": "main",
+      "x": 239,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "prop_campfire_3": {
+      "img": "main",
+      "x": 256,
+      "y": 198,
+      "w": 16,
+      "h": 16
+    },
+    "prop_fern": {
+      "img": "main",
+      "x": 113,
+      "y": 215,
+      "w": 14,
+      "h": 12
+    },
+    "prop_juniper": {
+      "img": "main",
+      "x": 273,
+      "y": 135,
+      "w": 22,
+      "h": 20
+    },
+    "prop_lupine": {
+      "img": "main",
+      "x": 286,
+      "y": 198,
+      "w": 9,
+      "h": 16
+    },
+    "prop_pine_0": {
+      "img": "main",
+      "x": 139,
+      "y": 42,
+      "w": 16,
+      "h": 30
+    },
+    "prop_pine_1": {
+      "img": "main",
+      "x": 99,
+      "y": 42,
+      "w": 20,
+      "h": 36
+    },
+    "prop_pine_2": {
+      "img": "main",
+      "x": 18,
+      "y": 135,
+      "w": 14,
+      "h": 24
+    },
+    "prop_saguaro": {
+      "img": "main",
+      "x": 120,
+      "y": 42,
+      "w": 18,
+      "h": 34
+    },
+    "prop_sign": {
+      "img": "main",
+      "x": 33,
+      "y": 135,
+      "w": 14,
+      "h": 22
+    },
+    "prop_snowpatch": {
+      "img": "main",
+      "x": 67,
+      "y": 230,
+      "w": 24,
+      "h": 8
+    },
+    "prop_stump": {
+      "img": "main",
+      "x": 231,
+      "y": 215,
+      "w": 12,
+      "h": 10
+    },
+    "prop_tent": {
+      "img": "main",
+      "x": 133,
+      "y": 181,
+      "w": 26,
+      "h": 16
+    },
+    "prop_wildflower": {
+      "img": "main",
+      "x": 51,
+      "y": 230,
+      "w": 7,
+      "h": 9
+    },
+    "prop_yucca": {
+      "img": "main",
+      "x": 296,
+      "y": 135,
+      "w": 16,
+      "h": 20
+    },
+    "raft_0": {
+      "img": "main",
+      "x": 59,
+      "y": 215,
+      "w": 26,
+      "h": 12
+    },
+    "raft_1": {
+      "img": "main",
+      "x": 86,
+      "y": 215,
+      "w": 26,
+      "h": 12
+    },
+    "rain_0": {
+      "img": "main",
+      "x": 59,
+      "y": 230,
+      "w": 3,
+      "h": 9
+    },
+    "rain_1": {
+      "img": "main",
+      "x": 63,
+      "y": 230,
+      "w": 3,
+      "h": 9
+    },
+    "rock_0": {
+      "img": "main",
+      "x": 134,
+      "y": 230,
+      "w": 12,
+      "h": 8
+    },
+    "rock_1": {
+      "img": "main",
+      "x": 180,
+      "y": 215,
+      "w": 16,
+      "h": 10
+    },
+    "rock_2": {
+      "img": "main",
+      "x": 296,
+      "y": 230,
+      "w": 9,
+      "h": 6
+    },
+    "snake_0": {
+      "img": "main",
+      "x": 197,
+      "y": 215,
+      "w": 16,
+      "h": 10
+    },
+    "snake_1": {
+      "img": "main",
+      "x": 214,
+      "y": 215,
+      "w": 16,
+      "h": 10
+    },
+    "snowflake_0": {
+      "img": "main",
+      "x": 312,
+      "y": 230,
+      "w": 3,
+      "h": 3
+    },
+    "snowflake_1": {
+      "img": "main",
+      "x": 306,
+      "y": 230,
+      "w": 5,
+      "h": 5
+    },
+    "snowflake_2": {
+      "img": "main",
+      "x": 288,
+      "y": 230,
+      "w": 7,
+      "h": 7
+    },
+    "star_0": {
+      "img": "main",
+      "x": 316,
+      "y": 230,
+      "w": 3,
+      "h": 3
+    },
+    "star_1": {
+      "img": "main",
+      "x": 1,
+      "y": 240,
+      "w": 3,
+      "h": 3
+    },
+    "sun": {
+      "img": "main",
+      "x": 297,
+      "y": 160,
+      "w": 18,
+      "h": 18
+    },
+    "ui_arrow": {
+      "img": "main",
+      "x": 177,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_compass": {
+      "img": "main",
+      "x": 1,
+      "y": 215,
+      "w": 14,
+      "h": 14
+    },
+    "ui_cursor": {
+      "img": "main",
+      "x": 277,
+      "y": 215,
+      "w": 8,
+      "h": 10
+    },
+    "ui_frame_b": {
+      "img": "main",
+      "x": 186,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_bl": {
+      "img": "main",
+      "x": 195,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_br": {
+      "img": "main",
+      "x": 204,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_c": {
+      "img": "main",
+      "x": 213,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_l": {
+      "img": "main",
+      "x": 222,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_r": {
+      "img": "main",
+      "x": 231,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_t": {
+      "img": "main",
+      "x": 240,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_tl": {
+      "img": "main",
+      "x": 249,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_frame_tr": {
+      "img": "main",
+      "x": 258,
+      "y": 230,
+      "w": 8,
+      "h": 8
+    },
+    "ui_heart_empty": {
+      "img": "main",
+      "x": 147,
+      "y": 230,
+      "w": 9,
+      "h": 8
+    },
+    "ui_heart_full": {
+      "img": "main",
+      "x": 157,
+      "y": 230,
+      "w": 9,
+      "h": 8
+    },
+    "ui_heart_half": {
+      "img": "main",
+      "x": 167,
+      "y": 230,
+      "w": 9,
+      "h": 8
+    },
+    "ui_snowflake": {
+      "img": "main",
+      "x": 31,
+      "y": 230,
+      "w": 9,
+      "h": 9
+    },
+    "ui_star": {
+      "img": "main",
+      "x": 41,
+      "y": 230,
+      "w": 9,
+      "h": 9
+    },
+    "water_0": {
+      "img": "main",
+      "x": 1,
+      "y": 181,
+      "w": 32,
+      "h": 16
+    },
+    "water_1": {
+      "img": "main",
+      "x": 34,
+      "y": 181,
+      "w": 32,
+      "h": 16
+    },
+    "water_2": {
+      "img": "main",
+      "x": 67,
+      "y": 181,
+      "w": 32,
+      "h": 16
+    },
+    "water_3": {
+      "img": "main",
+      "x": 100,
+      "y": 181,
+      "w": 32,
+      "h": 16
+    }
+  },
+  "anims": {
+    "hiker_walk": {
+      "frames": [
+        "hiker_walk_0",
+        "hiker_walk_1",
+        "hiker_walk_2",
+        "hiker_walk_3",
+        "hiker_walk_4",
+        "hiker_walk_5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "hiker_idle": {
+      "frames": [
+        "hiker_idle_0",
+        "hiker_idle_1"
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    "hiker_rest": {
+      "frames": [
+        "hiker_rest_0",
+        "hiker_rest_1"
+      ],
+      "fps": 1.5,
+      "loop": true
+    },
+    "hiker_sick": {
+      "frames": [
+        "hiker_sick_0",
+        "hiker_sick_1"
+      ],
+      "fps": 3,
+      "loop": true
+    },
+    "leader_walk": {
+      "frames": [
+        "leader_walk_0",
+        "leader_walk_1",
+        "leader_walk_2",
+        "leader_walk_3",
+        "leader_walk_4",
+        "leader_walk_5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "mule_walk": {
+      "frames": [
+        "mule_walk_0",
+        "mule_walk_1",
+        "mule_walk_2",
+        "mule_walk_3",
+        "mule_walk_4",
+        "mule_walk_5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "mule_idle": {
+      "frames": [
+        "mule_idle_0",
+        "mule_idle_1"
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    "cart_roll": {
+      "frames": [
+        "cart_0",
+        "cart_1",
+        "cart_2",
+        "cart_3"
+      ],
+      "fps": 12,
+      "loop": true
+    },
+    "campfire": {
+      "frames": [
+        "prop_campfire_0",
+        "prop_campfire_1",
+        "prop_campfire_2",
+        "prop_campfire_3"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "bear_walk": {
+      "frames": [
+        "bear_walk_0",
+        "bear_walk_1",
+        "bear_walk_2",
+        "bear_walk_3"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "forager_walk": {
+      "frames": [
+        "forager_walk_0",
+        "forager_walk_1",
+        "forager_walk_2",
+        "forager_walk_3"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "forager_grab": {
+      "frames": [
+        "forager_grab_0",
+        "forager_grab_1"
+      ],
+      "fps": 8,
+      "loop": false
+    },
+    "snake_rattle": {
+      "frames": [
+        "snake_0",
+        "snake_1"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    "fish_swim": {
+      "frames": [
+        "fish_0",
+        "fish_1",
+        "fish_2"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "water_flow": {
+      "frames": [
+        "water_0",
+        "water_1",
+        "water_2",
+        "water_3"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "raft_bob": {
+      "frames": [
+        "raft_0",
+        "raft_1"
+      ],
+      "fps": 3,
+      "loop": true
+    },
+    "rain_fall": {
+      "frames": [
+        "rain_0",
+        "rain_1"
+      ],
+      "fps": 14,
+      "loop": true
+    },
+    "star_twinkle": {
+      "frames": [
+        "star_0",
+        "star_1"
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    "key_hiker_walk": {
+      "frames": [
+        "key_hiker_walk_0",
+        "key_hiker_walk_1",
+        "key_hiker_walk_2",
+        "key_hiker_walk_3",
+        "key_hiker_walk_4",
+        "key_hiker_walk_5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "key_hiker_idle": {
+      "frames": [
+        "key_hiker_idle_0",
+        "key_hiker_idle_1"
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    "key_hiker_rest": {
+      "frames": [
+        "key_hiker_rest_0",
+        "key_hiker_rest_1"
+      ],
+      "fps": 1.5,
+      "loop": true
+    },
+    "key_hiker_sick": {
+      "frames": [
+        "key_hiker_sick_0",
+        "key_hiker_sick_1"
+      ],
+      "fps": 3,
+      "loop": true
+    },
+    "key_leader_walk": {
+      "frames": [
+        "key_leader_walk_0",
+        "key_leader_walk_1",
+        "key_leader_walk_2",
+        "key_leader_walk_3",
+        "key_leader_walk_4",
+        "key_leader_walk_5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "key_forager_walk": {
+      "frames": [
+        "key_forager_walk_0",
+        "key_forager_walk_1",
+        "key_forager_walk_2",
+        "key_forager_walk_3"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "key_forager_grab": {
+      "frames": [
+        "key_forager_grab_0",
+        "key_forager_grab_1"
+      ],
+      "fps": 8,
+      "loop": false
+    }
+  },
+  "tintKeys": {
+    "shirt": "#ff00ff",
+    "skin": "#00ff00",
+    "keyPrefix": "key_",
+    "defaults": {
+      "shirt": "#6b8fa8",
+      "skin": "#d9a276"
+    },
+    "note": "Frames named key_<frame> are identical to <frame> but with the shirt drawn in #ff00ff and the skin in #00ff00. Feed those to tintedFrame(name, hex) and replace the two key colours per party member. They are source art only and must never be blitted to the screen unrecoloured. The plain frames already ship with sensible defaults (shirt #6b8fa8, skin #d9a276)."
+  },
+  "meta": {
+    "generator": "scripts/bake-assets.mjs",
+    "grid": 1,
+    "baseW": 320,
+    "baseH": 180,
+    "itemIdSource": "data/items.js",
+    "palette": {
+      "ink": "#f4ecdd",
+      "inkDim": "#a99e8c",
+      "night": "#0e0b17",
+      "panel": "#1a1526",
+      "panel2": "#251d36",
+      "edge": "#4b3f66",
+      "gold": "#f2c98a",
+      "goldDim": "#c39d63",
+      "rust": "#d1785c",
+      "sage": "#8fd0a4",
+      "skyIce": "#bfe3ff",
+      "violet": "#6b5a94"
+    },
+    "font": {
+      "cell": [
+        5,
+        7
+      ],
+      "baselineRow": 5,
+      "descenderRow": 6,
+      "advance": 6,
+      "lineHeight": 9,
+      "lowercase": "aliased-to-uppercase (a 4-row x-height is not legible at 5x7)",
+      "aliases": "font_space, font_period, font_comma, ... resolve to the same rects as the literal-character names"
+    },
+    "sheets": {
+      "main": {
+        "w": 320,
+        "h": 248,
+        "frames": 164
+      },
+      "font": {
+        "w": 128,
+        "h": 32,
+        "frames": 59
+      }
+    }
+  }
+}

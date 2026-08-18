@@ -37,11 +37,15 @@ app.post('/api/save', async (req, res) => {
   catch (e) { res.status(500).json({ ok: false, error: String(e) }); }
 });
 
-app.get('/api/load', async (req, res) => {
+// "There is no save yet" is the normal first-run state, not an error. A 404 here makes
+// the browser log a failed resource load on every cold start, so answer 204 instead.
+async function sendSave(req, res) {
   const data = await readJson(SAVE_FILE, null);
-  if (!data) return res.status(404).json({ ok: false });
+  if (!data) return res.status(204).end();
   res.json(data);
-});
+}
+app.get('/api/load', sendSave);
+app.get('/api/save', sendSave);   // alias: the client probes both spellings
 
 app.delete('/api/save', async (req, res) => {
   try { await fs.unlink(SAVE_FILE); } catch {}
