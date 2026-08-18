@@ -68,7 +68,7 @@ export function map(ctx) {
       el('span.gold', `${fmtNum(Math.round(g.mile))} mi`),
       el('span.faint', `of ${fmtNum(TOTAL_MILES)} — ${pct.toFixed(1)}%`),
       el('span.cold', g.snowMile > TOTAL_MILES
-        ? `snow line still north of the border — ${ctx.Sim.snowDaysOfSlack(g)} days of slack`
+        ? `snow line still north of the border — ${ctx.Sim.snowDaysToBorder(g)} days before it reaches Canada`
         : `snow line at mile ${fmtNum(Math.round(g.snowMile))} — ${ctx.Sim.snowDaysOfSlack(g)} days of slack`),
       el('span.muted', `${fmtNum(Math.round(elevAtMile(g.mile)))} ft`),
     ),

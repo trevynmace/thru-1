@@ -190,8 +190,11 @@ async function run(page) {
 
   // A trip's worth of food and a spread of spares.
   // Everything rides on somebody's back now, so buy a trip's worth, not a season's.
+  // Deliberately short of a full pack. Weight is what sets daily mileage, so leaving
+  // Campo at 99% of capacity means crawling to Warner Springs and eating the surplus
+  // on the way — ten days of food and a resupply beats fifteen days and a limp.
   const buys = [
-    ['Trail Food', 14], ['Stove Fuel', 8], ['Spare Shoes', 3], ['Spare Poles', 2],
+    ['Trail Food', 10], ['Stove Fuel', 8], ['Spare Shoes', 3], ['Spare Poles', 2],
     ['Spare Filter', 2], ['Spare Pack', 1], ['Tent Repair Kit', 1],
     ['First Aid Kit', 3], ['Clothing', 4],
   ];
@@ -276,9 +279,15 @@ async function run(page) {
       if (await clickText(page, 'Buy supplies', { timeout: 700, optional: true })) {
         // Fill the food bag to whatever is left of the crew's carrying capacity —
         // the store sells in 10 lb steps and the long Sierra gaps punish half measures.
-        const headroom = await page.evaluate(() => {
+        const headroom = await page.evaluate(async () => {
+          const { LANDMARKS, TOTAL_MILES } = await import('../../data/trail.js');
           const g = window.NB.game;
-          return Math.max(0, window.NB.ctx.Sim.packCapacity(g) - g.kit.load);
+          const Sim = window.NB.ctx.Sim;
+          const next = LANDMARKS.filter((l) => l.store && l.mile > g.mile + 1).map((l) => l.mile)[0];
+          const gap = (next === undefined ? TOTAL_MILES : next) - g.mile;
+          const alive = Math.max(1, g.party.filter((m) => m.alive).length);
+          const need = (Math.ceil(gap / 16) + 3) * Sim.RATIONS.filling.lbPerDay * alive - g.supplies.food;
+          return Math.max(0, Math.min(need, Sim.packCapacity(g) - g.kit.load - 6));
         }).catch(() => 100);
         const row = page.locator('#screen-store .row', { hasText: 'Trail Food' }).first();
         const plus = row.locator('button:has-text("+")');
@@ -354,10 +363,31 @@ async function run(page) {
       if (turn === 9) { await page.keyboard.press('i'); await sleep(400); await shot(page, 'pack'); await page.keyboard.press('Escape'); }
       if (turn === 12) { await page.keyboard.press('c'); await sleep(400); await shot(page, 'party'); await page.keyboard.press('Escape'); }
       if (turn === 15) { await page.keyboard.press('r'); await sleep(400); await shot(page, 'camp'); await page.keyboard.press('Escape'); }
+      // Ration down long before the bag is empty. Days-left is always measured at the
+      // filling rate — judge it at the current one and cutting rations makes the bag
+      // look fuller, which flips the decision straight back the next morning.
+      const fullDays = state.food / (Math.max(1, state.alive) * 3);
+      const wantRations = fullDays > 7 ? 'filling' : fullDays > 3.5 ? 'meager' : 'bare';
+      await page.evaluate((r) => {
+        const g = window.NB.game;
+        if (g.rations !== r) { window.NB.ctx.Sim.setRations(g, r); window.NB.ctx.refreshHud(); }
+      }, wantRations).catch(() => {});
+
       // Between Kennedy Meadows and Tuolumne there is no store for 240 miles, so a crew
       // that only forages at landmarks starves in the Sierra. Forage from the trail the
       // way a player would, the moment the bag stops reaching the next store.
-      if (state.food < 90 && state.fuel > 0 && foraged < 20) {
+      // A forage day costs a day and a canister of fuel, so it is a last resort, not a
+      // habit: if a store is within a couple of days, walk to it and buy food like a
+      // person. Foraging every time the bag dips is how a crew spends a fortnight
+      // standing in a meadow and still starves.
+      const storeAway = await page.evaluate(async () => {
+        const { LANDMARKS, TOTAL_MILES } = await import('../../data/trail.js');
+        const g = window.NB.game;
+        const next = LANDMARKS.filter((l) => l.store && l.mile > g.mile + 1).map((l) => l.mile)[0];
+        return (next === undefined ? TOTAL_MILES : next) - g.mile;
+      }).catch(() => 999);
+
+      if (fullDays < 4 && storeAway > 34 && state.fuel > 0 && foraged < 20) {
         foraged++;
         await page.keyboard.press('f');
         await sleep(300);

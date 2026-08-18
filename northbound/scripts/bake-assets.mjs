@@ -766,8 +766,10 @@ function drawSick(c, r, K, frame) {
   // legs planted, slightly bent
   drawLeg(c, r.cx, hipY, r.cx - 2, gy, r, K, false);
   drawLeg(c, r.cx + 1, hipY, r.cx + 2, gy, r, K, true);
-  // pack still on, sagging
-  drawPack(c, r, K, -1, 2);
+  // Pack still on, sagging. It has to lean with the torso: the sick pose pitches the
+  // body two pixels forward, and a pack that stays put reads as a crate floating in
+  // the air beside a hiker rather than as weight on their shoulders.
+  drawPack(c, r, K, 1, 3);
   // torso pitched forward
   const ty = r.torsoY + 2 + droop;
   for (let i = 0; i < r.torsoH - 1; i++) {
@@ -827,7 +829,7 @@ function bakeFigures(kind, prefix, keyed) {
         const gy = r.groundY;
         const dip = i; // 0 = reaching, 1 = plucked
         drawLeg(c, r.cx, r.hipY + 2, r.cx - 3, gy, r, K, false);
-        drawPack(c, r, K, -1, 3);
+        drawPack(c, r, K, 2, 4);          // folded forward: the pack rides up and over
         drawLeg(c, r.cx + 1, r.hipY + 2, r.cx + 3, gy, r, K, true);
         // torso folded forward
         for (let j = 0; j < r.torsoH - 1; j++) {

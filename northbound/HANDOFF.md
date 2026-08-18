@@ -31,25 +31,17 @@ Branch: `claude/oregon-trail-game-ik0o32`. Everything below is committed and pus
 
 ## Open
 
-1. **A mule is still drawn in the river crossing.** `public/js/minigames/ford.js`
-   lines ~255–258, 266, and ~901–903 (`S.mules`, `isMule`) still put a pack
-   animal in the water. This is the exact inaccuracy the crossing was supposed to
-   lose. Delete the mule from `createState` and from the crew-drawing loop, and
-   redraw the extra figure as a sixth hiker or drop it.
-2. **`drawPackString()` in `render/scene.js` has never been seen on screen.** It
-   exists so a passing packer's mule string can appear as scenery — the honest
-   place for that art. Confirm it renders, or cut it.
-3. **The wade autopilot is too good.** After the fixed-timestep fix it crosses a
-   3.6 ft raging river clean every time. Diagnosis got as far as: the completion
-   branch in `updateWade` was never reached in the probe, which means the run is
-   ending somewhere else — check which `endRun()` call site actually fires for
-   `method: 'ford'`. Rock-hop, raft, shuttle and wait all behave.
-4. **Screenshots in `docs/playthrough/` are stale** — captured with the old
-   mule-and-cart build. Recapture with `node scripts/playtest.mjs` (without
-   `--quick`).
-5. **README and SPEC.md** still describe mules and the cart in places, and do not
-   document the pack-weight model or the assist setting.
-6. **Ship to `main`** once the above is closed out.
+1. **The playtest bot loses in the Sierra.** `scripts/playtest.mjs` passes its actual
+   contract — a full run of the real UI with zero console errors — and its forced
+   finish exercises the ending, but its own policy starves somewhere around Forester
+   Pass. `scripts/balance.mjs` is the authority on whether the *game* is winnable, and
+   says it is. If you want the bot to finish honestly, the gap is that it does not
+   carry enough over the 240-mile Kennedy Meadows → Tuolumne stretch and cannot
+   forage its way out of it. Same applies to `playthrough.mjs`.
+2. **Four screenshots are stale** — `camp`, `pace`, `party`, `rations`,
+   `forage-nofuel`. They are UI panels unaffected by the rework, and the playtest only
+   captures them if it is on the trail screen at particular turns. Harmless, but they
+   are older than the rest of the set.
 
 ## How to run things
 

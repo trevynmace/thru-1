@@ -467,7 +467,7 @@ export function refreshHud() {
     const days = Sim.snowDaysOfSlack(g);
     const offTrail = g.snowMile > TOTAL_MILES;
     status.textContent = offTrail
-      ? `Passes still open — ${days} days of slack`
+      ? `Passes still open — ${Sim.snowDaysToBorder(g)} days before they start closing`
       : gap > 900 ? `Snow line ${gap.toLocaleString('en-US')} mi back · ${days} days of slack`
       : gap > 260 ? `Snow line closing — ${gap} mi, ${days} days`
       : `SNOW LINE ${gap} MI BACK — ${days} DAYS`;

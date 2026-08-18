@@ -943,12 +943,15 @@ export function createScene(canvas) {
     const n = 2 + ((hashu(seg * 71 + 17) * 3) | 0);
     const rimCol = mix(st.light, '#ffffff', 0.2);
     const rimAmt = clamp(1 - Math.abs(st.dayPhase - 0.5) * 2.4, 0, 1) * 0.4;
+    // They pass on the far side of the tread, three pixels uphill of the crew's line,
+    // so the two groups read as passing each other rather than merging into one blob.
+    const farY = FEET_Y - 3;
     // The packer walks at the head of the string, facing the way they are going.
-    figure('leader_walk_0', x0 + n * 20 + 14, FEET_Y, 0, null, rimCol, rimAmt, true, 0.5, false, true);
+    figure('leader_walk_0', x0 + n * 20 + 14, farY, 0, null, rimCol, rimAmt, true, 0.5, false, true);
     for (let i = 0; i < n; i++) {
       const x = x0 + i * 20;
       if (x < -30 || x > W + 30) continue;
-      figure(animFrameName('mule_walk', time * 1.1 + i * 0.4), x, FEET_Y, 0, null, rimCol, rimAmt, true, 0.42, false, true);
+      figure(animFrameName('mule_walk', time * 1.1 + i * 0.4), x, farY, 0, null, rimCol, rimAmt, true, 0.42, false, true);
     }
   }
 

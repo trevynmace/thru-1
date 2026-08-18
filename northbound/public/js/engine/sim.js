@@ -432,6 +432,29 @@ export function snowDaysOfSlack(g) {
   return rate > 0 ? Math.max(0, Math.round(gap / rate)) : 999;
 }
 
+/**
+ * Days until the snow line reaches the northern terminus.
+ *
+ * While the line is still north of the border, "days of slack" against the crew is a
+ * meaningless four-figure number — the line has 1,800 miles of Canada to cross before
+ * it is anybody's problem. What a player actually wants to know then is how long the
+ * season has left, so we integrate the line forward at the real per-month rate, the
+ * same way the departure date is worked out backwards.
+ */
+export function snowDaysToBorder(g) {
+  if (!g || g.snowMile <= TOTAL_MILES) return 0;
+  const mult = difficultyOf(g).snowMult;
+  let mile = g.snowMile;
+  let date = g.date;
+  let days = 0;
+  while (days < 400 && mile > TOTAL_MILES) {
+    date = addDays(date, 1);
+    mile -= snowRateFor(date) * mult;
+    days++;
+  }
+  return days;
+}
+
 function tickSnow(g) {
   g.snowMile = round2(g.snowMile - snowRateFor(g.date) * difficultyOf(g).snowMult);
   if (g.status === 'playing' && g.snowMile <= g.mile) {
