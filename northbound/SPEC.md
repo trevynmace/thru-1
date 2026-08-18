@@ -1,8 +1,13 @@
 # NORTHBOUND — Build Spec
 
 > **NORTHBOUND** is an Oregon Trail clone reskinned into the world of this repo:
-> a five-hiker *trail crew* hauling a gear cart and pack mules 2,650 miles up the
-> Pacific Crest Trail from the Mexican border to Canada, racing the snow line.
+> a five-hiker *trail crew* carrying everything they own 2,650 miles up the Pacific
+> Crest Trail from the Mexican border to Canada, racing the snow line.
+>
+> There are no draft animals here. The Oregon Trail's oxen-and-wagon has no honest
+> equivalent on the modern PCT, so the lever it puts on livestock sits on **pack
+> weight**: capacity scales with how many people are still walking, and every pound
+> is a pound somebody carries to Canada.
 >
 > Gameplay is a deliberate, close clone of *The Oregon Trail* (1985/1990):
 > occupation choice → outfitting store → pace/rations management → landmarks →
@@ -94,7 +99,7 @@ violet     #6b5a94   shadow tint
 - Weather tints the whole frame via an overlay pass, never by swapping palettes.
 
 **Motion.** Nothing is static. The trail scene always has: parallax scroll, a 6-frame
-walk cycle, cart wheel rotation, mule head bob, drifting clouds, weather particles,
+walk cycle, mule head bob for a passing packer's string, drifting clouds, weather particles,
 and a slow day/night colour drift.
 
 ---
@@ -153,21 +158,21 @@ export const ITEMS = [{
   name: 'Trail Food',
   unit: 'lb',              // 'lb' | 'each' | 'set' | 'head'
   price: 0.42,             // base price in dollars per unit at mult 1.0
-  weightLb: 1,             // per unit, for cart load
+  weightLb: 1,             // per unit, counts against what the crew can carry
   category: 'food',        // 'food'|'parts'|'clothing'|'medical'|'stock'|'tools'|'luxury'
   icon: 'item_food',       // MUST match an atlas frame name
   blurb: 'Calories are miles.',
   max: 2000,               // purchase cap
 }];
 export const ITEMS_BY_ID;                  // Record<id, item>
-export const CART_PARTS = ['wheel','axle','hitch'];   // spare part item ids are `spare_wheel` etc.
+export const GEAR_PARTS = ['soles','poles','filter','pack','shelter'];  // spares are `spare_<part>`
 export function priceOf(itemId, mult)      // rounded to 2dp
 ```
 
 Required item ids (the sim references these by name — do not rename):
-`food`, `money` is not an item. Parts: `spare_wheel`, `spare_axle`, `spare_hitch`,
-`spare_soles`, `spare_poles`, `spare_filter`. Clothing: `clothing` (sets), `puffy`.
-Medical: `first_aid`, `electrolytes`, `blister_kit`. Stock: `mule`. Tools: `bear_can`,
+`food`, `money` is not an item. Parts: `spare_soles`, `spare_poles`, `spare_filter`,
+`spare_pack`, `spare_shelter`. Clothing: `clothing` (sets), `puffy`.
+Medical: `first_aid`, `electrolytes`, `blister_kit`. Tools: `bear_can`,
 `ice_axe`, `stove_fuel`, `water_carry`. Luxury: `camp_chair`, `paperback`, `harmonica`.
 Each luxury gives a small daily spirit bonus.
 
@@ -223,12 +228,12 @@ export function rollEvent(g, rng)        // weighted pick honouring filters; ret
 ```
 
 **Effects object** — every key optional, all numeric deltas applied by the sim:
-`food, money, mules, miles, spirit, health, days` plus any item id (`spare_wheel: -1`),
+`food, money, miles, spirit, health, days` plus any item id (`spare_soles: -1`),
 plus `ailment: 'giardia'` (applies to a random living member), `kill: true` (a random
-member dies), `partHealth: -10`, `cartCondition: -15`, `weather: 'snow'`.
+member dies), `partHealth: -10`, `kitCondition: -15`, `weather: 'snow'`.
 
 Minimum **60** events, spread across biomes, with the Oregon Trail canon reskinned:
-theft, lost trail, bad water, broken part, injured mule, wildfire closure, trail magic,
+theft, lost trail, bad water, blown pack strap, wildfire closure, trail magic,
 snowstorm, hail, heat wave, hitchhiker, lost member, rattlesnake, bear canister failure,
 river washout, ranger encounter, norovirus outbreak in a shelter, trail crew handing out
 sodas, thunderstorm above treeline, mosquito hell, resupply box lost in the mail, etc.
@@ -263,7 +268,7 @@ Minimum 70 talk lines. Voice: dry, warm, specific, occasionally funny. No emoji.
 ### 3.7 `data/store.js`
 
 ```js
-export const STORE_STOCK = ['food','mule','spare_wheel',...];  // ids offered, in display order
+export const STORE_STOCK = ['food','spare_soles','spare_poles',...];  // ids offered, in display order
 export function stockFor(landmark)   // subset appropriate to that landmark (small stores carry less)
 ```
 
@@ -312,8 +317,8 @@ export function serialize(g);  export function deserialize(json)   // rng seed+c
             spirit /*0..100*/, portrait: {skin, hair, shirt}, causeOfDeath, diedMile, diedDate }],
   day, date: { year: 2026, month, day },
   mile, pace, rations,
-  supplies: { food, money, mules, /* plus every item id: */ spare_wheel, ... },
-  cart: { condition /*0..100*/, load /*lb*/ },
+  supplies: { food, money, /* plus every item id: */ spare_soles, ... },
+  kit: { condition /*0..100*/, load /*lb*/, parts /*Record<part, 0..100>*/ },
   weather: { kind, tempF, severity /*0..1*/, daysLeft },
   snowMile,            // the snow line, chasing from the north; game over if snowMile <= mile
   landmarkIndex,       // index of last reached landmark
@@ -337,7 +342,7 @@ export function serialize(g);  export function deserialize(json)   // rng seed+c
 ```js
 export function scoreGame(g)   // { rows: [{label, qty, points}], total, rank }
 ```
-Oregon-Trail-style: points per surviving member scaled by health, per mule, per lb of
+Oregon-Trail-style: points per surviving member scaled by health, per lb of
 food, per spare part, per dollar, ×occupation multiplier. `rank` from a table
 ("Trail Legend", "Thru-Hiker", "Section Hiker", "Weekend Warrior", "Day Hiker").
 
@@ -369,12 +374,14 @@ In this order, always:
 2. Advance date by 1 day; `day++`.
 3. Roll/decay weather (`weather.daysLeft--`, new system when 0; weather odds by biome + month + elevation).
 4. Compute **miles**:
-   `base(pace) × terrainFactor(mile) × muleFactor × healthFactor × weatherFactor × cartFactor`
+   `base(pace) × terrainFactor(mile) × packFactor × healthFactor × weatherFactor × kitFactor`
    - `base`: steady 15, strenuous 20, grueling 25
-   - `muleFactor`: `0.55 + 0.09 × min(mules,5)` (0 mules = you haul the cart: 0.55)
+   - `packFactor`: a curve on `load / packCapacity`. Under ~half capacity the crew beats
+     baseline; at capacity they are slowed; over it, badly. `packCapacity` is
+     `12 + 34 × livingCount` lb, so it *shrinks when somebody dies*.
    - `healthFactor`: mean living-member health mapped 0.55..1.1
    - `weatherFactor`: clear 1.0, hot .9, rain .88, storm .7, hail .75, snow .55, smoke .85, fog .9, wind .93
-   - `cartFactor`: `0.7 + 0.3 × cart.condition/100`
+   - `kitFactor`: `0.7 + 0.3 × kit.condition/100`
    - Result clamped ≥ 1, floored to integer. Never overshoot the next landmark by more
      than it takes to arrive — if `mile + miles >= nextLandmark.mile`, clamp to the
      landmark and set `atLandmark`.
@@ -382,7 +389,7 @@ In this order, always:
    is left, set `starving`, and drain health hard (−12/member/day).
 6. **Health tick** per living member: start from a drift toward 100, then subtract for
    pace (steady 0, strenuous 2, grueling 5), rations (filling −0, meager 2, bare 5),
-   weather severity, elevation over 9,000 ft, ailments' `healthDrainPerDay`, cart
+   weather severity, elevation over 9,000 ft, ailments' `healthDrainPerDay`, kit
    overload. Add for camp/rest days, luxuries, and `first_aid` use. Clamp 0..100.
    Health ≤ 0 ⇒ member dies (log a death + epitaph).
 7. **Ailments**: tick `daysLeft`, recover at 0. Roll new onsets with probability from
@@ -390,7 +397,7 @@ In this order, always:
 8. **Spirit** (party morale, the nod to *Thru*): drifts down on grueling pace, bad
    weather, deaths; up at landmarks, towns, trail magic, luxuries. Spirit < 15 gives a
    pace penalty and unlocks "the crew is talking about getting off trail" warnings.
-9. **Cart**: wear `cart.condition` by pace and terrain; a random breakdown roll can
+9. **Kit**: wear `kit.condition` by pace and terrain; a random breakdown roll can
    destroy a part. With a matching spare in supplies, it is consumed automatically and
    costs 0 days; without one, the party loses 1–3 days (or must trade/shop).
 10. **Snow line**: `snowMile -= snowPerDay` where `snowPerDay` grows through the season
@@ -421,7 +428,7 @@ the way the original stops you at the bank. Foraging is reached from the trail H
 any day, matching where "Hunt" sits in the original.
 
 ### 5.4 Fords
-At a `ford` landmark, offer: **Ford it** (fast, risks losing supplies/mules/a member —
+At a `ford` landmark, offer: **Ford it** (fast, risks losing supplies or a member —
 odds from depth × flow), **Rock-hop upstream** (costs ½–1 day, safer), **Pack-raft
 across** (needs `water_carry`… no: costs money if a shuttle is nearby; else risky),
 **Hire a shuttle/hitch around** (costs money), **Wait a day** (flow drops with cold
@@ -464,7 +471,6 @@ export function tintedFrame(name, hex)                  // cached recolour (for 
 | hikers | `hiker_walk_0..5`, `hiker_idle_0..1`, `hiker_rest_0..1`, `hiker_sick_0..1`, `hiker_dead_0` (16×24, feet at bottom, faces right) |
 | leader | `leader_walk_0..5` (18×26, distinct hat) |
 | mule | `mule_walk_0..5`, `mule_idle_0..1`, `mule_sick_0` (24×20) |
-| cart | `cart_0..3` (wheel rotation, 34×24) |
 | props | `prop_saguaro`, `prop_yucca`, `prop_juniper`, `prop_pine_0..2`, `prop_boulder_0..1`, `prop_snowpatch`, `prop_sign`, `prop_cairn`, `prop_tent`, `prop_campfire_0..3`, `prop_wildflower`, `prop_stump`, `prop_fern`, `prop_lupine` |
 | landmarks | `lm_monument`, `lm_town`, `lm_pass`, `lm_ford`, `lm_lake`, `lm_falls`, `lm_lodge`, `lm_firetower` (48×40 hero silhouettes) |
 | items | `item_<id>` for every id in `ITEMS` (16×16) |
@@ -485,10 +491,10 @@ export function tintedFrame(name, hex)                  // cached recolour (for 
 ```js
 export function createScene(canvas)   // -> { render(state, dt), resize(), flash(color), shake(power) }
 ```
-`state`: `{ biome, mile, scroll, walking, dayPhase /*0..1*/, weather, party, mules, cartCondition, landmark, elevation, night }`.
+`state`: `{ biome, mile, scroll, walking, dayPhase /*0..1*/, weather, party, kitCondition, landmark, elevation, night }`.
 Draws (back→front): sky gradient (dithered bands, **not** a smooth CSS gradient), sun/moon
 + stars, 3 parallax ridgelines, haze dither, midground props, ground band, trail tread,
-foreground props, the **caravan** (mules → cart → leader → members, spaced, each with the
+foreground props, the **caravan** (crew → leader, spaced, each with the
 walk cycle offset), weather particles, vignette, and a subtle 1px scanline/grain overlay.
 
 ### 6.4 `render/fx.js`
@@ -561,7 +567,7 @@ percussion, with per-track instrument patches (square/triangle/saw/noise + envel
 filter + delay). Tracks loop seamlessly and are scheduled ahead on the WebAudio clock
 (no `setInterval` note scheduling drift).
 
-**SFX ids**: `click`, `back`, `select`, `buy`, `coin`, `error`, `footstep`, `cart_creak`,
+**SFX ids**: `click`, `back`, `select`, `buy`, `coin`, `error`, `footstep`, `pack_creak`,
 `mule_bray`, `thunder`, `rain_start`, `wind`, `splash`, `river`, `bird`, `snake_rattle`,
 `bear_growl`, `pickup`, `chomp`, `heartbeat`, `sick`, `death_knell`, `snap`, `hammer`,
 `page`, `map_open`, `win_fanfare`, `lose_fanfare`, `level_up`, `campfire`, `snowfall`,
@@ -593,7 +599,7 @@ CSS panel style — pick one per surface and be consistent.
   miles, valid biomes, ford/store shapes), item catalog validity (every `icon` exists in
   atlas.json), events (all effect keys known, all `requires` are functions, weights > 0),
   sim determinism (same seed ⇒ same 200-day trace), food/starvation, ailment lifecycle,
-  death and party wipe, snow-line loss, win reachability, cart breakdowns, store
+  death and party wipe, snow-line loss, win reachability, gear breakdowns, store
   buy/sell arithmetic, save round-trip, scoring.
 - `node scripts/playtest.mjs` → headless Chromium boots the server, plays a full run
   (setup → store → ~150 days with pace/ration changes, fords, foraging, events) and

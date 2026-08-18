@@ -5,7 +5,7 @@
 //   dithered sky bands -> sun/moon + halo -> stars -> cloud layers ->
 //   far/mid/near ridgelines (value noise, seeded by mile) -> valley haze ->
 //   distant water -> midground prop scatter -> ground band + trail tread ->
-//   landmark silhouette -> the caravan (mules, cart, leader, crew) ->
+//   landmark silhouette -> the crew (leader + party, on foot) ->
 //   foreground props + bank -> weather -> night grade + campfire ->
 //   vignette -> grain/scanlines
 //
@@ -22,8 +22,8 @@
 //   const scene = createScene(canvas);
 //   scene.render(state, dt);
 //
-// state: { biome, mile, scroll, walking, dayPhase, weather, party, mules,
-//          cartCondition, landmark, elevation, night, camped, wind }
+// state: { biome, mile, scroll, walking, dayPhase, weather, party,
+//          kitCondition, landmark, elevation, night, camped, wind }
 
 import { BASE_W, BASE_H, draw, drawFrame, frame, hasFrame, tintedFrame, recolorFrame, animFrameName } from './atlas.js';
 import { createFx } from './fx.js';
@@ -344,7 +344,8 @@ export function createScene(canvas) {
 
     // ---- ground -----------------------------------------------------------
     drawGround();
-    drawProps(0);   // midground, behind the caravan
+    drawProps(0);   // midground, behind the crew
+    drawPackString();   // a packer's string, occasionally, coming the other way
     drawTread();
 
     fx.setGround(FEET_Y + 2);
@@ -921,10 +922,42 @@ export function createScene(canvas) {
   const CARAVAN_OPTS = { alpha: 1, recolor: null, tint: null, flip: false };
   const RECOLOR = { skin: '#e8b98c', hair: '#2c2028', shirt: '#8fd0a4' };
 
+  /**
+   * A packer's mule string coming the other way.
+   *
+   * Stock is legal on the Pacific Crest Trail and it is how the back-country lodges get
+   * their freight, so every so often a string of mules passes the crew going south.
+   * Deterministic per mile segment, so the same string is in the same place every time
+   * you walk that stretch.
+   */
+  function drawPackString() {
+    const seg = Math.floor(world * PARALLAX[3] / 900);
+    if (hashu(seg * 71 + 13) > 0.22) return;                 // rare
+    const b = blend > 0.5 ? curBiome : prevBiome;
+    if (b !== 'sierra' && b !== 'alpine' && b !== 'forest') return;
+
+    const localX = (seg * 900 - world * PARALLAX[3]) | 0;
+    const x0 = localX + 120;
+    if (x0 < -90 || x0 > W + 60) return;
+
+    const n = 2 + ((hashu(seg * 71 + 17) * 3) | 0);
+    const rimCol = mix(st.light, '#ffffff', 0.2);
+    const rimAmt = clamp(1 - Math.abs(st.dayPhase - 0.5) * 2.4, 0, 1) * 0.4;
+    // They pass on the far side of the tread, three pixels uphill of the crew's line,
+    // so the two groups read as passing each other rather than merging into one blob.
+    const farY = FEET_Y - 3;
+    // The packer walks at the head of the string, facing the way they are going.
+    figure('leader_walk_0', x0 + n * 20 + 14, farY, 0, null, rimCol, rimAmt, true, 0.5, false, true);
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * 20;
+      if (x < -30 || x > W + 30) continue;
+      figure(animFrameName('mule_walk', time * 1.1 + i * 0.4), x, farY, 0, null, rimCol, rimAmt, true, 0.42, false, true);
+    }
+  }
+
   function drawCaravan(state, dt) {
     const walking = state.walking !== false;
     const party = Array.isArray(state.party) ? state.party : DEFAULT_PARTY;
-    const mules = clamp(state.mules === undefined ? 3 : state.mules | 0, 0, 5);
     const camped = !!state.camped;
     const anim = walking ? world / PX_PER_MILE : time;      // gait tracks distance, not clock
     const gait = walking ? world * 0.10 : time * 3.2;
@@ -935,28 +968,14 @@ export function createScene(canvas) {
     const rimAmt = fireOn ? 0.75 : clamp(1 - Math.abs(st.dayPhase - 0.5) * 2.4, 0, 1) * 0.5;
     const rimFromLeft = fireOn ? true : st.dayPhase < 0.5;
 
-    // ---- mules (front of the string, rightmost) --------------------------
-    for (let i = 0; i < mules; i++) {
-      const x = 234 - i * 18;
-      const ph = i * 0.37;
-      const nm = walking ? animFrameName('mule_walk', anim * 1.6 + ph)
-        : (hasFrame('mule_idle_0') ? animFrameName('mule_idle', time * 0.9 + ph) : 'mule_walk_0');
-      figure(nm, x, FEET_Y, walking ? bobOf(gait + ph * 3, 1) : bobIdle(time + ph), null, rimCol, rimAmt, rimFromLeft, 0.42);
-    }
-
-    // ---- cart -------------------------------------------------------------
-    if (hasFrame('cart_0')) {
-      const wheel = ((world / 4.5) | 0) & 3;
-      const cond = state.cartCondition === undefined ? 100 : state.cartCondition;
-      const jolt = walking ? ((Math.sin(gait * 1.3) > 0.86) ? 1 : 0) : 0;
-      figure('cart_' + wheel, 148, FEET_Y + jolt, 0, null, rimCol, rimAmt * 0.7, rimFromLeft, 0.5);
-      if (cond < 55) {
-        // a rattle of dust off a failing cart
-        dustAcc += dt * (walking ? (60 - cond) * 0.05 : 0);
-        while (dustAcc >= 1) {
-          dustAcc -= 1;
-          fx.emit('dust', { x: 152 + hashu((time * 91) | 0) * 24, y: FEET_Y - 1, count: 1, vx: -14 - hashu((time * 13) | 0) * 12, vy: -6, alpha: 0.5 });
-        }
+    // Worn-out gear kicks up a bit more dust and drags a bit more.
+    const kit = state.kitCondition === undefined ? 100 : state.kitCondition;
+    if (walking && kit < 55) {
+      dustAcc += dt * (60 - kit) * 0.04;
+      while (dustAcc >= 1) {
+        dustAcc -= 1;
+        fx.emit('dust', { x: 96 + hashu((time * 91) | 0) * 28, y: FEET_Y - 1, count: 1,
+          vx: -12 - hashu((time * 13) | 0) * 10, vy: -5, alpha: 0.45 });
       }
     }
 
@@ -965,14 +984,14 @@ export function createScene(canvas) {
       ? (hasFrame('leader_walk_0') ? animFrameName('leader_walk', anim * 2.0) : animFrameName('hiker_walk', anim * 2.0))
       : (hasFrame('hiker_idle_0') ? animFrameName('hiker_idle', time * 0.7) : 'hiker_walk_0');
     const leadRe = portraitOf(party[0]);
-    figure(leadName, 126, FEET_Y, walking ? bobOf(gait, 1.2) : bobIdle(time), leadRe, rimCol, rimAmt, rimFromLeft, 0.55);
+    figure(leadName, 168, FEET_Y, walking ? bobOf(gait, 1.2) : bobIdle(time), leadRe, rimCol, rimAmt, rimFromLeft, 0.55);
 
     // ---- crew -------------------------------------------------------------
     let slot = 0;
     for (let i = 1; i < party.length; i++) {
       const m = party[i];
       if (m && m.alive === false) continue;                  // the dead are simply not there
-      const x = 106 - slot * 17;
+      const x = 148 - slot * 18;
       slot++;
       if (x < -18) break;
       const ph = 0.31 + slot * 0.44;
@@ -1025,7 +1044,7 @@ export function createScene(canvas) {
   }
 
   /** One caravan sprite: shadow, rim light, body — all on integer pixels. */
-  function figure(name, x, feetY, bob, recolor, rimCol, rimAmt, rimLeft, shadowW, sick) {
+  function figure(name, x, feetY, bob, recolor, rimCol, rimAmt, rimLeft, shadowW, sick, flip) {
     if (!hasFrame(name)) return;
     const f = frame(name);
     const px = (x - (f.w >> 1)) | 0;
@@ -1048,6 +1067,7 @@ export function createScene(canvas) {
 
     // body
     CARAVAN_OPTS.recolor = recolor; CARAVAN_OPTS.alpha = 1; CARAVAN_OPTS.tint = null;
+    CARAVAN_OPTS.flip = !!flip;
     draw(ctx, name, px, py, CARAVAN_OPTS);
 
     // night grade on the figure so it sits in the dark
@@ -1058,6 +1078,8 @@ export function createScene(canvas) {
       draw(ctx, name, px, py, CARAVAN_OPTS);
       CARAVAN_OPTS.tint = null; CARAVAN_OPTS.alpha = 1;
     }
+
+    CARAVAN_OPTS.flip = false;
 
     if (sick) {
       // a green-grey pallor pass

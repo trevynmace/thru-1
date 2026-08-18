@@ -8,9 +8,9 @@ import { STORE_GREETINGS } from '../../../../data/dialogue.js';
 import { LANDMARKS } from '../../../../data/trail.js';
 import { itemIcon } from './icons.js';
 
-const CATEGORY_ORDER = ['food', 'stock', 'parts', 'clothing', 'medical', 'tools', 'luxury'];
+const CATEGORY_ORDER = ['food', 'parts', 'clothing', 'medical', 'tools', 'luxury'];
 const CATEGORY_LABEL = {
-  food: 'Calories', stock: 'Stock', parts: 'Spares', clothing: 'Layers',
+  food: 'Calories', parts: 'Spares', clothing: 'Layers',
   medical: 'Medical', tools: 'Kit', luxury: 'Comforts',
 };
 
@@ -27,21 +27,21 @@ export function store(ctx, params = {}) {
   const price = (id) => ctx.Sim.unitPrice(g, id, mult);
 
   const stock = stockFor(landmark).filter((id) => ITEMS_BY_ID[id]);
-  const cart = Object.create(null);          // pending purchases, applied on checkout
-  const total = () => stock.reduce((s, id) => s + (cart[id] || 0) * price(id), 0);
+  const basket = Object.create(null);        // pending purchases, applied on checkout
+  const total = () => stock.reduce((s, id) => s + (basket[id] || 0) * price(id), 0);
 
   const listNode = el('div.scroller');
   const totalNode = el('div.inline');
 
-  function qty(id) { return cart[id] || 0; }
+  function qty(id) { return basket[id] || 0; }
 
   function change(id, delta) {
     const item = ITEMS_BY_ID[id];
     const step = item.unit === 'lb' ? 10 * Math.sign(delta) : delta;
     const next = Math.max(0, Math.min(item.max ?? 999, qty(id) + step));
-    cart[id] = next;
+    basket[id] = next;
     if (total() > g.supplies.money) {
-      cart[id] = qty(id) - step;
+      basket[id] = qty(id) - step;
       Audio.sfx('error');
       ctx.toast('Not enough money for that.', 'bad');
     } else {
@@ -91,14 +91,14 @@ export function store(ctx, params = {}) {
 
   function checkout() {
     let bought = 0;
-    for (const [id, n] of Object.entries(cart)) {
+    for (const [id, n] of Object.entries(basket)) {
       if (!n) continue;
       const res = ctx.Sim.buy(g, id, n, mult);
       if (!res.ok) { Audio.sfx('error'); ctx.toast(res.reason || 'That purchase failed.', 'bad'); return; }
       bought += n;
     }
     if (bought) { Audio.sfx('buy'); ctx.toast('Loaded up.', 'good'); }
-    for (const k of Object.keys(cart)) delete cart[k];
+    for (const k of Object.keys(basket)) delete basket[k];
     ctx.refreshHud();
     if (outfitting) leaveOutfitting();
     else render();
@@ -112,29 +112,29 @@ export function store(ctx, params = {}) {
     ctx.close();
   }
 
-  // --- cart repair -------------------------------------------------------
-  // Anywhere with a store has a road, and anywhere with a road can true a wheel.
-  // Without this the cart only ever decays and the run quietly becomes unwinnable.
+  // --- replacing worn gear -----------------------------------------------
+  // Anywhere with a store has a road, and anywhere with a road can sell you tread.
+  // Without this the kit only ever degrades and the run quietly becomes unwinnable.
   const repairRow = el('div');
   function renderRepair() {
-    const cond = Math.round(g.cart.condition);
+    const cond = Math.round(g.kit.condition);
     if (cond >= 100) {
-      mountTo(repairRow, el('p.prose.small.faint', 'The cart is sound. Nothing to do here.'));
+      mountTo(repairRow, el('p.prose.small.faint', 'The kit is in good shape. Nothing worth replacing.'));
       return;
     }
-    const quote = ctx.Sim.repairQuote(g, mult);
+    const quote = ctx.Sim.gearQuote(g, mult);
     const affordable = Math.min(quote, g.supplies.money);
     mountTo(repairRow, el('div.row',
-      itemIcon('spare_wheel'),
+      itemIcon('spare_soles'),
       el('div.grow',
-        el('div.name', 'Work on the cart'),
-        el('div.sub', `Condition ${cond}%. A full job runs ${fmtMoney(quote)}.`),
+        el('div.name', 'Replace worn gear'),
+        el('div.sub', `Kit at ${cond}%. Re-kitting the crew runs ${fmtMoney(quote)}.`),
       ),
-      button(g.supplies.money >= quote ? 'Repair fully' : `Spend ${fmtMoney(affordable)}`, () => {
-        const res = ctx.Sim.repairCart(g, mult);
+      button(g.supplies.money >= quote ? 'Re-kit the crew' : `Spend ${fmtMoney(affordable)}`, () => {
+        const res = ctx.Sim.replaceGear(g, mult);
         if (!res.ok) { Audio.sfx('error'); ctx.toast(res.reason || 'They cannot help.', 'bad'); return; }
         Audio.sfx('hammer');
-        ctx.toast(`Cart back to ${Math.round(g.cart.condition)}%.`, 'good');
+        ctx.toast(`Kit back to ${Math.round(g.kit.condition)}%.`, 'good');
         ctx.refreshHud();
         renderRepair();
         render();
@@ -149,19 +149,18 @@ export function store(ctx, params = {}) {
     el('p.prose.small', greeting),
     outfitting && el('p.prose.small',
       el('b', 'Buy well here.'), ' This is the cheapest store on the whole trail. Food is the one thing you ',
-      'cannot improvise, mules pull the cart, and every spare you skip is a day you will spend sitting in the dirt.'),
+      'cannot improvise, every pound rides on somebody who has to carry it, and every spare you skip is a day you will spend sitting in the dirt.'),
     listNode,
     el('hr.divider'),
-    el('h3', 'The cart'),
+    el('h3', 'Worn gear'),
     repairRow,
-    el('hr.divider'),
-    totalNode,
   );
 
   const node = panel({
     title: (landmark.store && landmark.store.name) || 'Outfitter',
     meta: `${landmark.name} · mile ${fmtNum(landmark.mile)}${mult > 1 ? ` · prices ×${mult.toFixed(1)}` : ''}`,
     body,
+    sticky: totalNode,
     foot: [
       el('span.spacer'),
       !outfitting && button('Done', () => { Audio.sfx('back'); ctx.close(); }, { cls: 'ghost' }),

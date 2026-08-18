@@ -27,7 +27,7 @@ const ENDINGS = {
   },
   wiped: {
     title: 'Nobody Left Walking',
-    line: 'The cart sits where it stopped. Somebody else will find it, eventually, and wonder.',
+    line: 'Five packs sit where they were set down. Somebody else will find them, eventually, and wonder.',
   },
   quit: {
     title: 'Off Trail',

@@ -153,15 +153,19 @@ async function gameState(page) {
     return {
       day: g.day, mile: Math.round(g.mile), status: g.status, cause: g.cause,
       food: Math.round(g.supplies.food), money: Math.round(g.supplies.money),
-      mules: g.supplies.mules, alive: g.party.filter((m) => m.alive).length,
-      snowMile: Math.round(g.snowMile), cart: Math.round(g.cart.condition),
+      fuel: g.supplies.stove_fuel, alive: g.party.filter((m) => m.alive).length,
+      snowMile: Math.round(g.snowMile), kit: Math.round(g.kit.condition),
+      load: Math.round(g.kit.load),
     };
   });
 }
 
 async function run(page) {
   log('load the title screen');
-  await page.goto(BASE, { waitUntil: 'networkidle' });
+  // The bot cannot play a twitch minigame, and a run that escapes out of every ford and
+  // every forage day is not a run. Boot with the crew handling them, at a compressed
+  // clock so a full season fits in a test.
+  await page.goto(BASE + '/?auto=1&speed=8', { waitUntil: 'networkidle' });
   await page.waitForSelector('#screen-title.active', { timeout: 15000 });
   await page.waitForFunction(() => !!window.NB, null, { timeout: 15000 });
   await sleep(700);
@@ -184,10 +188,14 @@ async function run(page) {
   await clickText(page, 'To the outfitter');
   await page.waitForSelector('#screen-store.active');
 
-  // Buy a sane kit: plenty of food, mules, and a spread of spares.
+  // A trip's worth of food and a spread of spares.
+  // Everything rides on somebody's back now, so buy a trip's worth, not a season's.
+  // Deliberately short of a full pack. Weight is what sets daily mileage, so leaving
+  // Campo at 99% of capacity means crawling to Warner Springs and eating the surplus
+  // on the way — ten days of food and a resupply beats fifteen days and a limp.
   const buys = [
-    ['Trail Food', 55], ['Pack Mule', 4], ['Spare Wheel', 2], ['Spare Axle', 1],
-    ['Spare Shoes', 3], ['Spare Poles', 2], ['Spare Filter', 2],
+    ['Trail Food', 10], ['Stove Fuel', 8], ['Spare Shoes', 3], ['Spare Poles', 2],
+    ['Spare Filter', 2], ['Spare Pack', 1], ['Tent Repair Kit', 1],
     ['First Aid Kit', 3], ['Clothing', 4],
   ];
   for (const [name, clicks] of buys) {
@@ -203,7 +211,7 @@ async function run(page) {
 
   const start = await gameState(page);
   if (!start) fail('no game state after outfitting');
-  else log(`on trail with ${start.food} lb, $${start.money}, ${start.mules} mules`);
+  else log(`on trail with ${start.food} lb, $${start.money}, ${start.load} lb on their backs`);
   await sleep(600);
   await shot(page, 'trail');
 
@@ -234,7 +242,20 @@ async function run(page) {
 
     if (state.mile === lastMile) stuck++; else stuck = 0;
     lastMile = state.mile;
-    if (stuck > 26) { fail(`stuck at mile ${state.mile} for ${stuck} turns on screen "${await activeScreen(page)}"`); break; }
+    if (stuck > 26) {
+      const where = await activeScreen(page);
+      // A wedge is only useful if it says what it was looking at, so dump the panel.
+      const dump = await page.evaluate((scr) => {
+        const sec = document.getElementById('screen-' + scr);
+        if (!sec) return 'no such section';
+        const btns = [...sec.querySelectorAll('button')].map((b) => `[${b.textContent.trim()}]`).join(' ');
+        const all = [...document.querySelectorAll('.screen.active')].map((n) => n.id).join(',');
+        return `active=${sec.classList.contains('active')} allActive=${all} buttons: ${btns || '(none)'}\n      `
+          + (sec.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+      }, where).catch(() => '(dump failed)');
+      fail(`stuck at mile ${state.mile} for ${stuck} turns on screen "${where}"\n      ${dump}`);
+      break;
+    }
 
     const screen = await activeScreen(page);
 
@@ -251,36 +272,50 @@ async function run(page) {
 
     if (screen === 'landmark') {
       landmarks++;
+      if (TIMING) console.log(`      @landmark d${state.day} mi${state.mile} food=${state.food} fuel=${state.fuel} hp?`);
       if (landmarks === 1) await shot(page, 'landmark');
 
-      // Cross rivers, top up food when low, rest when the crew is hurting.
-      if (await clickText(page, 'Cross ', { timeout: 700, optional: true })) {
-        forded++;
-        await sleep(250);
-        if (forded === 1) await shot(page, 'ford');
-        await page.locator('#screen-ford .menu-numbered .btn').nth(Math.min(4, forded % 5)).click({ timeout: 3000 }).catch(() => {});
-        await sleep(1400);                       // let the crossing get going
-        for (let k = 0; k < 3; k++) { await page.keyboard.press('Escape'); await sleep(350); }
-        await clickText(page, 'Onward', { timeout: 6000, optional: true });
-        continue;
-      }
-
-      if (state.food < 120 && await clickText(page, 'Buy supplies', { timeout: 700, optional: true })) {
+      // Top up food when low, rest when the crew is hurting.
+      if (await clickText(page, 'Buy supplies', { timeout: 700, optional: true })) {
+        // Fill the food bag to whatever is left of the crew's carrying capacity —
+        // the store sells in 10 lb steps and the long Sierra gaps punish half measures.
+        const headroom = await page.evaluate(async () => {
+          const { LANDMARKS, TOTAL_MILES } = await import('../../data/trail.js');
+          const g = window.NB.game;
+          const Sim = window.NB.ctx.Sim;
+          const next = LANDMARKS.filter((l) => l.store && l.mile > g.mile + 1).map((l) => l.mile)[0];
+          const gap = (next === undefined ? TOTAL_MILES : next) - g.mile;
+          const alive = Math.max(1, g.party.filter((m) => m.alive).length);
+          const need = (Math.ceil(gap / 16) + 3) * Sim.RATIONS.filling.lbPerDay * alive - g.supplies.food;
+          return Math.max(0, Math.min(need, Sim.packCapacity(g) - g.kit.load - 6));
+        }).catch(() => 100);
         const row = page.locator('#screen-store .row', { hasText: 'Trail Food' }).first();
         const plus = row.locator('button:has-text("+")');
-        for (let i = 0; i < 30; i++) await plus.click({ timeout: 1500 }).catch(() => {});
+        for (let i = 0; i < Math.round(headroom / 10); i++) await plus.click({ timeout: 1500 }).catch(() => {});
+        const fuelRow = page.locator('#screen-store .row', { hasText: 'Stove Fuel' }).first();
+        if (await fuelRow.count()) {
+          const fp = fuelRow.locator('button:has-text("+")');
+          for (let i = 0; i < 6; i++) await fp.click({ timeout: 1200 }).catch(() => {});
+        }
         await clickText(page, 'Buy', { optional: true });
         await clickText(page, 'Done', { optional: true });
         continue;
       }
 
-      if (state.food < 60 && foraged < 3) {
+      // Between Kennedy Meadows and Tuolumne there are 240 miles and no store, so a
+      // crew that only forages once the bag is nearly empty starves in the Sierra.
+      if (state.food < 100 && foraged < 14 && state.fuel > 0) {
         foraged++;
         if (await clickText(page, 'Try to forage', { timeout: 700, optional: true })) {
           await clickText(page, 'Spend the day', { timeout: 3000, optional: true });
-          await sleep(1500);
+          await sleep(1200);
           if (foraged === 1) await shot(page, 'forage');
-          for (let k = 0; k < 3; k++) { await page.keyboard.press('Escape'); await sleep(350); }
+          const done = await page.waitForSelector('#screen-forage.active .btn', { timeout: 25000 })
+            .then(() => true, () => false);
+          if (!done) {
+            await page.keyboard.press('Escape');
+            await page.waitForSelector('#screen-forage.active .btn', { timeout: 8000 }).catch(() => {});
+          }
           await clickText(page, 'Back to the trail', { timeout: 6000, optional: true });
           continue;
         }
@@ -301,12 +336,79 @@ async function run(page) {
       continue;
     }
 
+    // Arriving at a river opens the crossing directly, the way The Oregon Trail does,
+    // so the ford is its own top-level screen rather than a landmark menu item.
+    if (screen === 'ford') {
+      forded++;
+      if (forded === 1) await shot(page, 'ford');
+      const methods = page.locator('#screen-ford .menu-numbered .btn');
+      const n = await methods.count();
+      if (n) await methods.nth(Math.min(n - 1, forded % n)).click({ timeout: 3000 }).catch(() => {});
+      // The crossing plays itself out; wait for the result panel rather than bailing.
+      const resolved = await page.waitForSelector('#screen-ford.active .btn', { timeout: 20000 })
+        .then(() => true, () => false);
+      if (!resolved) {
+        await page.keyboard.press('Escape');
+        await page.waitForSelector('#screen-ford.active .btn', { timeout: 8000 }).catch(() => {});
+      }
+      if (!(await clickText(page, 'Onward', { timeout: 4000, optional: true }))) {
+        await clickText(page, 'Look at it again', { timeout: 2000, optional: true });
+      }
+      continue;
+    }
+
     if (screen === 'trail') {
       // Occasionally poke the info screens to prove they render mid-run.
       if (turn === 6) { await page.keyboard.press('m'); await sleep(500); await shot(page, 'map'); await page.keyboard.press('Escape'); }
       if (turn === 9) { await page.keyboard.press('i'); await sleep(400); await shot(page, 'pack'); await page.keyboard.press('Escape'); }
       if (turn === 12) { await page.keyboard.press('c'); await sleep(400); await shot(page, 'party'); await page.keyboard.press('Escape'); }
       if (turn === 15) { await page.keyboard.press('r'); await sleep(400); await shot(page, 'camp'); await page.keyboard.press('Escape'); }
+      // Ration down long before the bag is empty. Days-left is always measured at the
+      // filling rate — judge it at the current one and cutting rations makes the bag
+      // look fuller, which flips the decision straight back the next morning.
+      const fullDays = state.food / (Math.max(1, state.alive) * 3);
+      const wantRations = fullDays > 7 ? 'filling' : fullDays > 3.5 ? 'meager' : 'bare';
+      await page.evaluate((r) => {
+        const g = window.NB.game;
+        if (g.rations !== r) { window.NB.ctx.Sim.setRations(g, r); window.NB.ctx.refreshHud(); }
+      }, wantRations).catch(() => {});
+
+      // Between Kennedy Meadows and Tuolumne there is no store for 240 miles, so a crew
+      // that only forages at landmarks starves in the Sierra. Forage from the trail the
+      // way a player would, the moment the bag stops reaching the next store.
+      // A forage day costs a day and a canister of fuel, so it is a last resort, not a
+      // habit: if a store is within a couple of days, walk to it and buy food like a
+      // person. Foraging every time the bag dips is how a crew spends a fortnight
+      // standing in a meadow and still starves.
+      const storeAway = await page.evaluate(async () => {
+        const { LANDMARKS, TOTAL_MILES } = await import('../../data/trail.js');
+        const g = window.NB.game;
+        const next = LANDMARKS.filter((l) => l.store && l.mile > g.mile + 1).map((l) => l.mile)[0];
+        return (next === undefined ? TOTAL_MILES : next) - g.mile;
+      }).catch(() => 999);
+
+      if (fullDays < 4 && storeAway > 34 && state.fuel > 0 && foraged < 20) {
+        foraged++;
+        await page.keyboard.press('f');
+        await sleep(300);
+        if ((await activeScreen(page)) === 'forage') {
+          if (await clickText(page, 'Spend the day', { timeout: 2500, optional: true })) {
+            await sleep(1200);
+            if (foraged === 1) await shot(page, 'forage');
+            const done = await page.waitForSelector('#screen-forage.active .btn', { timeout: 25000 })
+              .then(() => true, () => false);
+            if (!done) {
+              await page.keyboard.press('Escape');
+              await page.waitForSelector('#screen-forage.active .btn', { timeout: 8000 }).catch(() => {});
+            }
+            await clickText(page, 'Back to the trail', { timeout: 6000, optional: true });
+          } else {
+            await clickText(page, 'Not today', { timeout: 1500, optional: true });
+          }
+          continue;
+        }
+      }
+
       // Space *toggles* travel, so only press it when the crew is actually stopped -
       // pressing every turn just switches walking on and off and goes nowhere.
       const moving = await page.evaluate(() => !!(window.NB && window.NB.isTravelling && window.NB.isTravelling()));

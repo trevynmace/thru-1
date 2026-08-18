@@ -10,7 +10,7 @@ import {
   TOTAL_MILES, LANDMARKS, BIOMES,
   landmarkAtMile, nextLandmark, lastLandmark, biomeAtMile, elevAtMile, terrainFactor,
 } from '../data/trail.js';
-import { ITEMS, ITEMS_BY_ID, CART_PARTS, priceOf } from '../data/items.js';
+import { ITEMS, ITEMS_BY_ID, GEAR_PARTS, priceOf } from '../data/items.js';
 import { AILMENTS, AILMENTS_BY_ID } from '../data/ailments.js';
 import { EVENTS, rollEvent } from '../data/events.js';
 import { OCCUPATIONS, NAME_POOL, TRAIL_NAMES, generateTrailName, EPITAPHS, PORTRAIT_PARTS } from '../data/party.js';
@@ -141,7 +141,7 @@ test('trail: the canon touchstones are present', () => {
 
 test('items: catalog is valid and ids are unique', () => {
   const units = ['lb', 'each', 'set', 'head'];
-  const cats = ['food', 'parts', 'clothing', 'medical', 'stock', 'tools', 'luxury'];
+  const cats = ['food', 'parts', 'clothing', 'medical', 'tools', 'luxury'];
   const seen = new Set();
   for (const it of ITEMS) {
     assert.ok(!seen.has(it.id), `duplicate item ${it.id}`);
@@ -161,18 +161,18 @@ test('items: catalog is valid and ids are unique', () => {
 });
 
 test('items: every id the sim hard-codes exists', () => {
-  const required = ['food', 'spare_wheel', 'spare_axle', 'spare_hitch', 'spare_soles',
+  const required = ['food', 'spare_pack', 'spare_shelter', 'spare_soles',
     'spare_poles', 'spare_filter', 'clothing', 'puffy', 'first_aid', 'electrolytes',
-    'blister_kit', 'mule', 'bear_can', 'ice_axe', 'stove_fuel', 'water_carry',
+    'blister_kit', 'bear_can', 'ice_axe', 'stove_fuel', 'water_carry',
     'camp_chair', 'paperback', 'harmonica'];
   for (const id of required) assert.ok(ITEMS_BY_ID[id], `missing required item ${id}`);
   assert.ok(!ITEMS_BY_ID.money, 'money is not an item');
-  for (const p of CART_PARTS) assert.ok(ITEMS_BY_ID[`spare_${p}`], `no spare for cart part ${p}`);
-  assert.deepEqual(CART_PARTS, ['wheel', 'axle', 'hitch']);
+  for (const p of GEAR_PARTS) assert.ok(ITEMS_BY_ID[`spare_${p}`], `no spare for gear part ${p}`);
+  assert.deepEqual(GEAR_PARTS, ['soles', 'poles', 'filter', 'pack', 'shelter']);
 });
 
 test('items: there is at least one luxury and one of every category the store needs', () => {
-  for (const cat of ['food', 'parts', 'clothing', 'medical', 'stock', 'tools', 'luxury']) {
+  for (const cat of ['food', 'parts', 'clothing', 'medical', 'tools', 'luxury']) {
     assert.ok(ITEMS.some((i) => i.category === cat), `no items in category ${cat}`);
   }
 });
@@ -242,8 +242,8 @@ test('ailments: no single ailment is instantly lethal at full health', () => {
 
 // ---------------------------------------------------------------- events
 
-const EFFECT_KEYS = new Set(['food', 'money', 'mules', 'miles', 'spirit', 'health', 'days',
-  'ailment', 'kill', 'partHealth', 'cartCondition', 'weather']);
+const EFFECT_KEYS = new Set(['food', 'money', 'miles', 'spirit', 'health', 'days',
+  'ailment', 'kill', 'partHealth', 'kitCondition', 'weather']);
 
 function checkEffects(where, fx) {
   assert.equal(typeof fx, 'object', `${where} effects must be an object`);

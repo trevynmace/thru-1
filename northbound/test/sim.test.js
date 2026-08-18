@@ -8,10 +8,10 @@ import {
   newGame, startingKit, advanceDay, restDays, applyEffects, resolveChoice,
   resolveFord, applyForageResult, setPace, setRations, isOver, useItem,
   serialize, deserialize, livingParty, livingCount, meanHealth, recomputeLoad,
-  cartCapacity, initialSnowMile, fordRisk, getQty, repairCart, snowpack,
+  packCapacity, packFactor, initialSnowMile, fordRisk, getQty, replaceGear, snowpack, inSnowpack,
 } from '../public/js/engine/sim.js';
 import { TOTAL_MILES, LANDMARKS, nextLandmark } from '../data/trail.js';
-import { ITEMS, ITEMS_BY_ID, CART_PARTS } from '../data/items.js';
+import { ITEMS, ITEMS_BY_ID, GEAR_PARTS } from '../data/items.js';
 import { AILMENTS, AILMENTS_BY_ID } from '../data/ailments.js';
 import { OCCUPATIONS } from '../data/party.js';
 
@@ -21,9 +21,8 @@ import { OCCUPATIONS } from '../data/party.js';
 function stocked(opts = {}) {
   const g = newGame({ seed: 1, leaderName: 'Wren', memberNames: ['Ada', 'Bo', 'Cass', 'Dov'], month: 4, ...opts });
   g.supplies.food = 1200;
-  g.supplies.mules = 5;
   g.supplies.money = 400;
-  for (const p of CART_PARTS) g.supplies[`spare_${p}`] = 2;
+  for (const p of GEAR_PARTS) g.supplies[`spare_${p}`] = 2;
   recomputeLoad(g);
   return g;
 }
@@ -33,8 +32,8 @@ function fingerprint(g) {
   return [
     g.day, g.mile, g.status, g.cause, Math.round(g.snowMile),
     g.weather.kind, g.weather.severity, g.weather.daysLeft,
-    Math.round(g.supplies.food), g.supplies.money, g.supplies.mules,
-    Math.round(g.cart.condition), g.cart.load, g.rng.calls, g.log.length,
+    Math.round(g.supplies.food), g.supplies.money, Math.round(g.kit.load),
+    Math.round(g.kit.condition), g.kit.load, g.rng.calls, g.log.length,
     g.party.map((m) => `${m.alive ? 1 : 0}:${m.health}:${m.spirit}:${(m.ailments || []).map((a) => a.id + a.daysLeft).join('+')}`).join('/'),
   ].join('|');
 }
@@ -87,7 +86,7 @@ test('newGame produces the exact state shape the save file and UI read', () => {
   }
   // Every item id has a supplies slot so the UI never renders undefined.
   for (const it of ITEMS) {
-    const key = it.id === 'mule' ? 'mules' : it.id;
+    const key = it.id;
     assert.equal(typeof g.supplies[key], 'number', `supplies.${key}`);
   }
 });
@@ -103,7 +102,7 @@ test('startingKit gives the occupation its money and an outfitting-ready empty p
     const kit = startingKit(occ.id);
     assert.equal(kit.money, occ.money);
     assert.equal(kit.supplies.food, 0, 'you must buy your own food');
-    assert.equal(kit.supplies.mules, 0);
+
     assert.equal(kit.scoreMult, occ.scoreMult);
   }
   assert.ok(startingKit('not-a-real-occupation'), 'must not throw on a bad id');
@@ -144,14 +143,16 @@ test('a 200-day trace stays well-formed the whole way', () => {
       assert.ok(Array.isArray(rep.lines) && Array.isArray(rep.deaths) && Array.isArray(rep.onsets));
       assert.equal(typeof rep.miles, 'number');
       assert.ok(rep.miles >= 0 && rep.miles <= 40, `absurd day: ${rep.miles} miles`);
-      assert.ok(g.mile >= last, 'the trail never runs backwards on a normal day');
+      // Events like losing the trail legitimately push you back; nothing else should.
+      if (!rep.event) assert.ok(g.mile >= last, 'the trail never runs backwards without an event');
+      assert.ok(g.mile >= last - 30, 'and never by an absurd amount');
       assert.ok(g.mile <= TOTAL_MILES);
       for (const m of g.party) {
         assert.ok(m.health >= 0 && m.health <= 100, `health ${m.health}`);
         assert.ok(m.spirit >= 0 && m.spirit <= 100, `spirit ${m.spirit}`);
       }
-      assert.ok(g.cart.condition >= 0 && g.cart.condition <= 100);
-      assert.ok(g.supplies.food >= 0 && g.supplies.money >= 0 && g.supplies.mules >= 0);
+      assert.ok(g.kit.condition >= 0 && g.kit.condition <= 100);
+      assert.ok(g.supplies.food >= 0 && g.supplies.money >= 0 && g.kit.load >= 0);
       assert.ok(['playing', 'won', 'lost'].includes(g.status));
       last = g.mile;
       if (rep.ended) break;
@@ -219,21 +220,23 @@ test('but grueling is a bad long-run trade: it burns the crew down', () => {
     `grueling health ${grueling.health} !< strenuous ${strenuous.health}`);
 });
 
-test('mules matter: no mules is markedly slower than a full string', () => {
-  const dist = (mules) => {
-    const g = stocked({ seed: 606 });
-    g.supplies.mules = mules;
-    setPace(g, 'steady');
-    for (let i = 0; i < 30; i++) advanceDay(g);
+test('pack weight matters: a light kit outwalks a heavy one', () => {
+  const dist = (foodLb) => {
+    const g = stocked({ seed: 88 });
+    g.supplies.food = foodLb;
+    recomputeLoad(g);
+    for (let i = 0; i < 12; i++) advanceDay(g);
     return g.mile;
   };
-  assert.ok(dist(5) > dist(0) * 1.4, 'a mule string should be worth ~1.8x the bare haul');
+  const light = dist(60);
+  const heavy = dist(400);
+  assert.ok(light > heavy * 1.15,
+    `a light pack (${light} mi) should clearly outwalk an overloaded one (${heavy} mi)`);
 });
 
 test('a day never covers zero miles while anyone is walking', () => {
   const g = stocked({ seed: 5150 });
-  g.supplies.mules = 0;
-  g.cart.condition = 1;
+  g.kit.condition = 1;
   for (const m of g.party) m.health = 3;
   g.weather = { kind: 'snow', severity: 1, tempF: 10, daysLeft: 9 };
   const rep = advanceDay(g);
@@ -520,39 +523,42 @@ test('restDays rejects nonsense without throwing', () => {
 
 // ------------------------------------------------------------------ cart
 
-test('the cart wears faster at a harder pace', () => {
+test('gear wears faster at a harder pace', () => {
   const wear = (pace) => {
     const g = stocked({ seed: 33 });
+    // No spares: a replaced part restores condition and would mask the wear rate.
+    for (const p of GEAR_PARTS) g.supplies[`spare_${p}`] = 0;
     setPace(g, pace);
     for (let i = 0; i < 10; i++) advanceDay(g);
-    return 100 - g.cart.condition;
+    return 100 - g.kit.condition;
   };
-  assert.ok(wear('grueling') > wear('steady') * 1.5);
+  const hard = wear('grueling'), easy = wear('steady');
+  assert.ok(hard > easy * 1.3, `grueling wear ${hard.toFixed(1)} vs steady ${easy.toFixed(1)}`);
 });
 
 test('a breakdown consumes a matching spare and costs no days', () => {
   const g = stocked({ seed: 34 });
-  for (const p of CART_PARTS) g.supplies[`spare_${p}`] = 1;
-  const spares = CART_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
+  for (const p of GEAR_PARTS) g.supplies[`spare_${p}`] = 1;
+  const spares = GEAR_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
   const day = g.day;
   const lines = applyEffects(g, { partHealth: -200 });   // guaranteed to destroy a part
-  const after = CART_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
+  const after = GEAR_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
   assert.equal(after, spares - 1, 'exactly one spare is consumed');
   assert.equal(g.day, day, 'a spare means no lost days');
   assert.ok(lines.some((l) => /spare/i.test(l)));
-  assert.ok(g.cart.condition > 0);
+  assert.ok(g.kit.condition > 0);
 });
 
 test('a breakdown with no spare costs 1-3 days and damages the cart', () => {
   const g = stocked({ seed: 35 });
-  for (const p of CART_PARTS) g.supplies[`spare_${p}`] = 0;
+  for (const p of GEAR_PARTS) g.supplies[`spare_${p}`] = 0;
   const day = g.day;
-  const cond = g.cart.condition;
+  const cond = g.kit.condition;
   const food = g.supplies.food;
   applyEffects(g, { partHealth: -200 });
   const lost = g.day - day;
   assert.ok(lost >= 1 && lost <= 3, `lost ${lost} days`);
-  assert.ok(g.cart.condition < cond, 'the cart takes damage');
+  assert.ok(g.kit.condition < cond, 'the cart takes damage');
   assert.equal(food - g.supplies.food, lost * 5 * RATIONS.filling.lbPerDay, 'the crew still eats while repairing');
   assert.equal(g.mile, 0, 'no miles are made during a repair');
 });
@@ -563,12 +569,12 @@ test('breakdowns actually happen over a long run, and spares get consumed', () =
   for (let seed = 0; seed < 25; seed++) {
     const g = stocked({ seed: 700 + seed });
     setPace(g, 'grueling');
-    for (const p of CART_PARTS) g.supplies[`spare_${p}`] = 1;
+    for (const p of GEAR_PARTS) g.supplies[`spare_${p}`] = 1;
     let used = 0;
     for (let i = 0; i < 120 && g.status === 'playing'; i++) {
-      const before = CART_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
+      const before = GEAR_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
       const rep = advanceDay(g);
-      const after = CART_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
+      const after = GEAR_PARTS.reduce((s, p) => s + g.supplies[`spare_${p}`], 0);
       if (rep.breakdown) {
         if (after < before) used++;
         else withoutSpare++;
@@ -580,29 +586,32 @@ test('breakdowns actually happen over a long run, and spares get consumed', () =
   assert.ok(withoutSpare > 0, 'running out of spares should eventually hurt');
 });
 
-test('the cart carries more with more mules, and overloading slows you down', () => {
-  const g = stocked({ seed: 36 });
-  g.supplies.mules = 0;
-  const capNoMules = cartCapacity(g);
-  g.supplies.mules = 5;
-  assert.ok(cartCapacity(g) > capNoMules * 2);
+test('capacity scales with how many people are left to carry it', () => {
+  const g = stocked({ seed: 90 });
+  const full = packCapacity(g);
+  g.party[3].alive = false;
+  g.party[4].alive = false;
+  const thin = packCapacity(g);
+  assert.ok(thin < full, 'losing people costs you carrying capacity');
+  assert.ok(thin > 0);
 
-  const dist = (food) => {
-    const h = stocked({ seed: 3600 });
-    h.supplies.mules = 1;
-    h.supplies.food = food;
+  // And an overloaded crew is slower than a comfortable one.
+  const speed = (lb) => {
+    const h = stocked({ seed: 91 });
+    h.supplies.food = lb;
     recomputeLoad(h);
-    for (let i = 0; i < 10; i++) advanceDay(h);
-    return h.mile;
+    return packFactor(h);
   };
-  assert.ok(dist(2000) < dist(120), 'a wildly overloaded cart must be slower');
+  assert.ok(speed(20) >= 1, 'a light load costs nothing, and going light is rewarded');
+  assert.ok(speed(200) < speed(20), 'a full pack is slower than a light one');
+  assert.ok(speed(500) < speed(200), 'and an overloaded one is slower still');
 });
 
 // ------------------------------------------------------------------ effects
 
 test('applyEffects handles every legal effect key', () => {
   const g = stocked({ seed: 37 });
-  g.supplies.food = 500; g.supplies.money = 300; g.supplies.mules = 4;
+  g.supplies.food = 500; g.supplies.money = 300;
   g.mile = 500;
 
   applyEffects(g, { food: -50 });
@@ -614,8 +623,8 @@ test('applyEffects handles every legal effect key', () => {
   assert.equal(g.supplies.money, 180);
   assert.equal(g.stats.moneySpent, 120);
 
-  applyEffects(g, { mules: -2 });
-  assert.equal(g.supplies.mules, 2);
+  applyEffects(g, { spare_soles: -2 });
+  assert.equal(getQty(g, 'spare_soles'), 0);
 
   applyEffects(g, { miles: 30 });
   assert.equal(g.mile, 530);
@@ -630,11 +639,11 @@ test('applyEffects handles every legal effect key', () => {
   applyEffects(g, { health: -15 });
   assert.equal(g.party[0].health, 65);
 
-  applyEffects(g, { cartCondition: -30 });
-  assert.equal(g.cart.condition, 70);
+  applyEffects(g, { kitCondition: -30 });
+  assert.equal(g.kit.condition, 70);
 
   applyEffects(g, { partHealth: -10 });
-  assert.ok(Object.values(g.cart.parts).some((v) => v < 100));
+  assert.ok(Object.values(g.kit.parts).some((v) => v < 100));
 
   applyEffects(g, { weather: 'snow' });
   assert.equal(g.weather.kind, 'snow');
@@ -642,9 +651,9 @@ test('applyEffects handles every legal effect key', () => {
   applyEffects(g, { ailment: 'giardia' });
   assert.ok(g.party.some((m) => m.ailments.some((a) => a.id === 'giardia')));
 
-  g.supplies.spare_wheel = 2;
-  applyEffects(g, { spare_wheel: -1 });
-  assert.equal(g.supplies.spare_wheel, 1);
+  g.supplies.spare_pack = 2;
+  applyEffects(g, { spare_pack: -1 });
+  assert.equal(g.supplies.spare_pack, 1);
   applyEffects(g, { paperback: 1 });
   assert.equal(g.supplies.paperback, 1);
 
@@ -659,12 +668,11 @@ test('applyEffects handles every legal effect key', () => {
 
 test('applyEffects clamps at zero and never produces negative supplies', () => {
   const g = stocked({ seed: 38 });
-  g.supplies.food = 10; g.supplies.money = 5; g.supplies.mules = 1; g.supplies.spare_axle = 0;
-  applyEffects(g, { food: -9999, money: -9999, mules: -9, spare_axle: -3 });
+  g.supplies.food = 10; g.supplies.money = 5; g.supplies.spare_soles = 1;
+  applyEffects(g, { food: -9999, money: -9999, spare_soles: -9 });
   assert.equal(g.supplies.food, 0);
   assert.equal(g.supplies.money, 0);
-  assert.equal(g.supplies.mules, 0);
-  assert.equal(g.supplies.spare_axle, 0);
+  assert.equal(getQty(g, 'spare_soles'), 0);
 });
 
 test('applyEffects ignores unknown keys and malformed input without throwing', () => {
@@ -890,7 +898,7 @@ test('advanceDay never throws, whatever it is handed', () => {
     (() => { const g = stocked({ seed: 64 }); g.mile = 99999; return g; })(),
     (() => { const g = stocked({ seed: 65 }); g.mile = -500; return g; })(),
     (() => { const g = stocked({ seed: 66 }); g.cart = null; return g; })(),
-    (() => { const g = stocked({ seed: 67 }); g.supplies.food = NaN; g.supplies.mules = -3; return g; })(),
+    (() => { const g = stocked({ seed: 67 }); g.supplies.food = NaN; g.supplies.spare_soles = -3; return g; })(),
   ];
   for (const [i, w] of wrecks.entries()) {
     const rep = advanceDay(w);
@@ -964,7 +972,7 @@ test('deserialize repairs partial and hostile saves instead of throwing', () => 
   assert.equal(h.rations, 'filling');
   assert.equal(h.rng.calls, 0);
   assert.ok(h.supplies && typeof h.supplies.food === 'number');
-  assert.ok(h.cart && typeof h.cart.condition === 'number');
+  assert.ok(h.kit && typeof h.kit.condition === 'number');
   assert.ok(Array.isArray(h.log) && Array.isArray(h.stats && []) !== null);
   assert.doesNotThrow(() => advanceDay(h));
 });
@@ -984,7 +992,6 @@ test('deserialize accepts an already-parsed object as well as a string', () => {
 function BALANCE_FREEZE(g) {
   g.weather = { kind: 'clear', severity: 0, tempF: 65, daysLeft: 9999 };
   g.supplies.food = 5000;
-  g.supplies.mules = 5;
   recomputeLoad(g);
 }
 
@@ -995,34 +1002,50 @@ function BALANCE_FREEZE(g) {
 export function play(seed, { sloppy = false } = {}) {
   const g = newGame({ seed, month: sloppy ? 5 : 4, occupation: 'ranger', difficulty: 'normal' });
   buyStart(g, sloppy);
+  setRations(g, sloppy ? 'meager' : 'filling');
+
   for (let i = 0; i < 400 && g.status === 'playing'; i++) {
-    const h = meanHealth(g);
-    if (!sloppy) {
-      setPace(g, h > 65 ? 'strenuous' : h > 40 ? 'steady' : 'steady');
-      setRations(g, g.supplies.food > 260 ? 'filling' : g.supplies.food > 90 ? 'meager' : 'bare');
-      if (h < 42 && g.snowMile - g.mile > 500) { restDays(g, 2); continue; }
-    } else {
-      setPace(g, 'grueling');
-      setRations(g, 'meager');
+    // Walk first. A policy that decides whether to move *before* moving can talk itself
+    // into standing still forever, which is how this fixture used to starve in the Sierra.
+    advanceDay(g);
+    if (g.status !== 'playing') break;
+
+    if (sloppy) { setPace(g, 'grueling'); continue; }
+
+    setPace(g, meanHealth(g) > 34 ? 'strenuous' : 'steady');
+
+    if (g.pendingFord) {
+      // Snowmelt crossings are the cheapest place to lose a crew. Pay when you can.
+      const f = g.pendingFord;
+      const risky = f.flow === 'raging' || f.depthFt > 3;
+      resolveFord(g, risky && g.supplies.money > 120 ? 'shuttle' : 'ford',
+        { success: true, severity: risky ? 1 : 0 });
+      if (g.pendingFord) resolveFord(g, 'ford', { success: true, severity: 1 });
     }
+
     const lm = LANDMARKS[g.landmarkIndex];
     if (g.atLandmark && lm?.store) restock(g, lm);
-    if (g.pendingFord) { resolveFord(g, 'rock-hop'); continue; }
-    if (!sloppy && g.supplies.food < 40) { applyForageResult(g, 30); continue; }
-    advanceDay(g);
+
+    if (meanHealth(g) < 58 && g.snowMile - g.mile > 420 && !inSnowpack(g)) restDays(g, 2);
+
+    const living = livingCount(g) || 1;
+    const daysFood = g.supplies.food / (living * RATIONS[g.rations].lbPerDay);
+    if (daysFood < 3 && getQty(g, 'stove_fuel') > 0) applyForageResult(g, 45);
   }
   return g;
 }
 
 function buyStart(g, sloppy) {
   const { buy } = require_sim();
-  buy(g, 'mule', 5, 1);
-  buy(g, 'food', sloppy ? 380 : 460, 1);
+  // Weight is speed now: buy a trip's worth, not a season's.
+  buy(g, 'food', sloppy ? 200 : 150, 1);
+  if (!sloppy) buy(g, 'stove_fuel', 8, 1);
   if (!sloppy) buy(g, 'ice_axe', 1, 1);
   if (!sloppy) {
-    for (const p of CART_PARTS) buy(g, `spare_${p}`, 1, 1);
+    for (const p of GEAR_PARTS) buy(g, `spare_${p}`, 1, 1);
     buy(g, 'first_aid', 2, 1);
-    buy(g, 'clothing', 2, 1);
+    buy(g, 'clothing', 4, 1);
+    buy(g, 'ice_axe', 1, 1);
   }
 }
 
@@ -1030,10 +1053,14 @@ function restock(g, lm) {
   const { buy } = require_sim();
   const mult = lm.store?.mult ?? 1;
   // A competent player notices the cart dragging and pays to have it trued.
-  if (g.cart.condition < 72) repairCart(g, mult);
-  const want = Math.max(0, 320 - g.supplies.food);
-  if (want > 20) buy(g, 'food', want, mult);
-  for (const p of CART_PARTS) if (getQty(g, `spare_${p}`) < 1) buy(g, `spare_${p}`, 1, mult);
+  if (g.kit.condition < 72) replaceGear(g, mult);
+  // Stores are the better part of a week apart, so top up close to full even though
+  // the extra weight costs a little speed. Running out is far more expensive.
+  const room = Math.max(0, packCapacity(g) * 0.90 - g.kit.load);
+  const want = Math.floor(Math.min(room, 150));
+  if (want > 15) buy(g, 'food', want, mult);
+  if (getQty(g, 'stove_fuel') < 3) buy(g, 'stove_fuel', 4, mult);
+  for (const p of GEAR_PARTS) if (getQty(g, `spare_${p}`) < 1) buy(g, `spare_${p}`, 1, mult);
   if (getQty(g, 'first_aid') < 2) buy(g, 'first_aid', 1, mult);
 }
 

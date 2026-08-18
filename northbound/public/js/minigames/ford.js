@@ -250,10 +250,11 @@ function createState(ford, method, rng, o) {
   let bonus = 0;
   if (Number.isFinite(o.bonus)) bonus = o.bonus;
   else if (o.g && o.g.perks && Number.isFinite(o.g.perks.fordBonus)) bonus = o.g.perks.fordBonus;
-  let crew = 5, mules = 3;
+  // Everyone in the water is a person carrying their own pack. Nothing on this trail
+  // is led across a river on a rope.
+  let crew = 5;
   try {
     if (o.g && Array.isArray(o.g.party)) crew = clamp(o.g.party.filter((p) => p && p.alive !== false).length, 1, 6);
-    if (o.g && o.g.supplies && Number.isFinite(o.g.supplies.mules)) mules = clamp(o.g.supplies.mules | 0, 0, 5);
   } catch { /* defaults */ }
 
   // channel width and crossing time scale with the ford's numbers
@@ -261,10 +262,11 @@ function createState(ford, method, rng, o) {
   const duration = clamp(6 + widthFt / 12, 7, 15);
 
   return {
-    ford, method, rng, flow, depthFt, widthFt, biome, bonus, crew, mules,
+    ford, method, rng, flow, depthFt, widthFt, biome, bonus, crew,
     pal: SKY_PAL[biome] || SKY_PAL.sierra,
     audio: o.audio || null,
     autoplay: !!o.autoplay,
+    aiT: 0, aiInput: 0, aiBias: null,
     skill: Number.isFinite(o.autoplaySkill) ? clamp(o.autoplaySkill, 0, 1) : 0.75,
     timeScale: Number.isFinite(o.timeScale) ? clamp(o.timeScale, 0.1, 20) : 1,
     t: 0, done: false, outT: 0,
@@ -365,7 +367,14 @@ function boot(canvas, S, finish) {
     dt = Math.min(dt, 1 / 20) * S.timeScale;
     if (S.paused || document.hidden) dt = 0;
     try {
-      if (dt > 0) update(S, dt, D, finish);
+      // Fixed-size steps, however much time the frame covers. A compressed clock (or a
+      // dropped frame) must not change how the physics behave, and a bang-bang input
+      // sampled once per 130 ms is not the same game as one sampled every 16 ms.
+      for (let left = dt; left > 0 && !settled;) {
+        const step = Math.min(left, 1 / 60);
+        update(S, step, D, finish);
+        left -= step;
+      }
       render(g, S, D, layers);
     } catch {
       finish('error');
@@ -527,11 +536,34 @@ function updateWade(S, dt, D) {
   if (S.keys.right) input += 1;
   if (S.touchDir) input += S.touchDir;
   if (S.autoplay) {
-    const err = (S.rng() - 0.5) * (1 - S.skill) * 90;
-    const look = chanCenter(S, wyCrew + 26);
-    const target = look + err;
-    input = Math.abs(target - S.crewX) < 3 ? 0 : (target > S.crewX ? 1 : -1);
-    if (S.rng() < (1 - S.skill) * 0.05) input = -input;
+    // Wading is not steering toward a point, it is leaning into a current that is
+    // already moving you. Aim at the channel a little upstream of where you are, then
+    // take the drift out of it — without that damping term the crew swings across the
+    // deep water on every correction and arrives soaked.
+    //
+    // The crew also reacts on human time. Re-deciding every frame makes them flawless
+    // on a river that should frighten them, so the decision is held for a beat and the
+    // water gets that beat to move them.
+    S.aiT -= dt;
+    // Misreading the water is a bias, not a jitter: you pick a line a few feet off the
+    // deep channel and commit to it, and the current works on you the whole way across.
+    // Zero-mean noise would average out to a perfect crossing, which is not the point.
+    // How badly you read it scales with the water — nobody misjudges an ankle-deep
+    // creek, and everybody misjudges a raging one.
+    if (S.aiBias == null) {
+      const misread = S.half * (0.55 + S.flow.risk * 0.95) * (1 - S.skill) * 4;
+      S.aiBias = (S.rng() - 0.5) * misread;
+    }
+    S.aiBias = clamp(S.aiBias + (S.rng() - 0.5) * (1 - S.skill) * 130 * dt, -S.half * 1.6, S.half * 1.6);
+    if (S.aiT <= 0) {
+      S.aiT = 0.10 + (1 - S.skill) * 0.34;
+      const err = S.aiBias + (S.rng() - 0.5) * (1 - S.skill) * 30;
+      const target = chanCenter(S, wyCrew + 30) + err;
+      const want = (target - S.crewX) * 2.4 - S.crewV * 0.6;
+      S.aiInput = Math.abs(want) < 4 ? 0 : (want > 0 ? 1 : -1);
+      if (S.rng() < (1 - S.skill) * 0.10) S.aiInput = -S.aiInput;
+    }
+    input = S.aiInput;
   }
   input = clamp(input, -1, 1);
 
@@ -612,8 +644,14 @@ function updateHop(S, dt, D) {
 
   let press = S.pressed;
   if (S.autoplay) {
-    const tol = S.winHalf * (0.5 + S.skill * 0.7);
-    press = Math.abs(S.marker - S.winCenter) < tol && S.rng() < 0.75;
+    // The marker crosses the window in a couple of frames at the later beats, so a
+    // "am I inside it right now" test misses it outright. Watch for the crossing
+    // instead, and let the crew's error, not the frame rate, decide whether it lands.
+    const step = S.mDir * S.mSpeed * dt;
+    const prev = S.marker - step;
+    const crossed = (prev - S.winCenter) * (S.marker - S.winCenter) <= 0;
+    const err = (S.rng() - 0.5) * (1 - S.skill) * S.winHalf * 2.2;
+    press = crossed || Math.abs(S.marker + err - S.winCenter) < S.winHalf * 0.6;
   }
   // never let a beat stall the game
   if (S.beatT > 5) press = true;
@@ -858,13 +896,11 @@ function renderWade(g, S, D, L) {
   g.beginPath();
   g.rect(0, 0, BASE_W, CREW_Y + 1);
   g.clip();
-  const n = S.crew + (S.mules > 0 ? 1 : 0);
+  const n = S.crew;
   for (let i = 0; i < n; i++) {
-    const isMule = S.mules > 0 && i === n - 1;
     const x = Math.round(S.crewX + (i - (n - 1) / 2) * 9 + wob);
     const bob = Math.sin(S.t * 4 + i) * 0.8;
-    if (isMule) drawMule(g, D, x, CREW_Y + sink + bob, S.t);
-    else drawWader(g, D, x, CREW_Y + sink + bob, i, S.t, S);
+    drawWader(g, D, x, CREW_Y + sink + bob, i, S.t, S);
   }
   g.restore();
   // waterline ripples around each figure
@@ -925,22 +961,6 @@ function drawWader(g, D, x, yFeet, i, t, S) {
   g.fillStyle = INK_DIM;
   const px = x + 4 + Math.round(sway);
   g.fillRect(px, y - 13, 1, 14);
-}
-
-function drawMule(g, D, x, yFeet, t) {
-  const y = Math.round(yFeet);
-  if (spr(g, D, `mule_walk_${Math.floor(t * 6) % 6}`, x, y, {}, 12)) return;
-  const c = '#241c2c';
-  g.fillStyle = c;
-  g.fillRect(x - 7, y - 9, 14, 5);
-  g.fillRect(x - 6, y - 4, 2, 4);
-  g.fillRect(x + 4, y - 4, 2, 4);
-  g.fillRect(x + 5, y - 13, 4, 5);
-  g.fillRect(x + 8, y - 11, 3, 2);
-  g.fillRect(x + 5, y - 15, 1, 2);
-  g.fillRect(x + 7, y - 15, 1, 2);
-  g.fillStyle = GOLD_DIM;
-  g.fillRect(x - 5, y - 12, 8, 3);            // panniers
 }
 
 // --- rock hop ----------------------------------------------------------

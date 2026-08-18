@@ -77,6 +77,11 @@ const state = {
   raf: 0,
   camped: false,
   cleanup: null,      // active screen's unmount fn
+  // A stop the trail owes the player: {name, params} for an arrival, ford or event that
+  // is queued behind a short beat. Travel must not resume while one is outstanding, and
+  // it survives the player wandering off to the map so the town is never skipped.
+  pendingStop: null,
+  pendingTimer: 0,
   booted: false,
 };
 
@@ -97,8 +102,8 @@ export async function init() {
 
   state.sceneState = {
     biome: 'desert', mile: 0, scroll: 0, walking: false, dayPhase: 0.35,
-    weather: { kind: 'clear', severity: 0 }, party: [], mules: 0,
-    cartCondition: 100, landmark: null, elevation: 2915, night: false, camped: false,
+    weather: { kind: 'clear', severity: 0 }, party: [],
+    kitCondition: 100, landmark: null, elevation: 2915, night: false, camped: false,
   };
 
   wireGlobalKeys();
@@ -136,8 +141,7 @@ function frame(now) {
     s.mile = g.mile;
     s.biome = biomeAtMile(g.mile);
     s.weather = g.weather;
-    s.mules = g.supplies.mules;
-    s.cartCondition = g.cart.condition;
+    s.kitCondition = g.kit.condition;
     s.elevation = elevAtMile(g.mile);
     s.party = g.party;
     s.dayPhase = dayPhaseFor(g, now);
@@ -216,6 +220,12 @@ export function go(name, params = null) {
     if (s !== node && !(OVERLAY_SCREENS.has(name) && s.id === 'screen-trail')) s.classList.remove('active');
   }
 
+  // A queued arrival must survive the player opening the map in the beat before it
+  // lands: cancel the timer, keep the stop, and hand it back when they return to the
+  // trail. Opening the queued screen itself is what actually clears it.
+  if (state.pendingTimer) { clearTimeout(state.pendingTimer); state.pendingTimer = 0; }
+  if (state.pendingStop && state.pendingStop.name === name) state.pendingStop = null;
+
   clear(node);
   node.classList.toggle('dim', OVERLAY_SCREENS.has(name));
   state.screen = name;
@@ -243,6 +253,20 @@ export function showTrail() {
   state.stack.length = 0;
   refreshHud();
   playMusicForContext();
+
+  // An arrival the player stepped away from is still an arrival. Hand it over now
+  // rather than dropping it and letting the crew walk on past the town.
+  if (state.pendingStop && state.game && state.game.status === 'playing') {
+    const stop = state.pendingStop;
+    state.pendingTimer = setTimeout(() => { state.pendingTimer = 0; go(stop.name, stop.params); }, 90);
+  }
+}
+
+/** Park a stop behind a short beat so the arrival reads on screen before its panel. */
+function queueStop(name, params, delay) {
+  if (state.pendingTimer) clearTimeout(state.pendingTimer);
+  state.pendingStop = { name, params };
+  state.pendingTimer = setTimeout(() => { state.pendingTimer = 0; go(name, params); }, delay);
 }
 
 export function close() { showTrail(); }
@@ -260,6 +284,8 @@ function focusFirst(node) {
 
 export function startGame(opts) {
   state.game = Sim.newGame(opts);
+  if (state.pendingTimer) { clearTimeout(state.pendingTimer); state.pendingTimer = 0; }
+  state.pendingStop = null;
   state.camped = false;
   state.scroll = 0;
   clearJournal();
@@ -269,6 +295,10 @@ export function startGame(opts) {
 }
 
 export function setTravelling(on) {
+  // An arrival or an event is queued behind a short beat before its panel opens. If
+  // travel can restart inside that window the crew walks straight past the town, and
+  // the panel then opens onto a landmark they have already left.
+  if (on && state.pendingStop) return;
   state.travelling = !!on && !!state.game && state.game.status === 'playing';
   state.walking = state.travelling;
   if (state.travelling) {
@@ -321,16 +351,13 @@ function stepTravel() {
     // A river is not a menu item: The Oregon Trail stops you at the bank and makes you
     // choose how to cross before anything else, so arriving at a ford opens it directly.
     const toFord = report.arrived.ford && g.pendingFord;
-    setTimeout(
-      () => go(toFord ? 'ford' : 'landmark', { landmark: report.arrived }),
-      toFord ? 520 : 420,
-    );
+    queueStop(toFord ? 'ford' : 'landmark', { landmark: report.arrived }, toFord ? 520 : 420);
     return;
   }
 
   if (report.event) {
     setTravelling(false);
-    setTimeout(() => go('event', { event: report.event, report }), 320);
+    queueStop('event', { event: report.event, report }, 320);
     return;
   }
 
@@ -437,9 +464,13 @@ export function refreshHud() {
   const gap = Math.round(g.snowMile - g.mile);
   const status = $('#rail-status');
   if (status) {
-    status.textContent = gap > 900 ? `Snow line ${gap.toLocaleString('en-US')} mi ahead`
-      : gap > 260 ? `Snow line closing — ${gap} mi`
-      : `SNOW LINE ${gap} MI BEHIND SCHEDULE`;
+    const days = Sim.snowDaysOfSlack(g);
+    const offTrail = g.snowMile > TOTAL_MILES;
+    status.textContent = offTrail
+      ? `Passes still open — ${Sim.snowDaysToBorder(g)} days before they start closing`
+      : gap > 900 ? `Snow line ${gap.toLocaleString('en-US')} mi back · ${days} days of slack`
+      : gap > 260 ? `Snow line closing — ${gap} mi, ${days} days`
+      : `SNOW LINE ${gap} MI BACK — ${days} DAYS`;
     status.className = 'rail-status' + (gap <= 260 ? ' danger' : gap <= 900 ? ' warn' : '');
   }
 
@@ -452,6 +483,7 @@ function renderReadout(g) {
   const node = $('#hud-readout'); if (!node) return;
   const s = g.supplies;
   const foodDays = Math.floor(s.food / Math.max(1, livingCount(g) * Sim.RATIONS[g.rations].lbPerDay));
+  const load = g.kit.load / Math.max(1, Sim.packCapacity(g));
   // Oregon Trail reports one word for the whole party's health; the per-member detail
   // lives in the crew chips below.
   const partyHealth = Sim.meanHealth(g);
@@ -462,8 +494,9 @@ function renderReadout(g) {
     el('span', 'Food ', el('b', { class: foodDays < 4 ? 'bad' : foodDays < 9 ? 'warn' : '' }, `${Math.round(s.food)} lb`),
       el('span.faint', ` (${foodDays}d)`)),
     el('span', 'Cash ', el('b', '$' + Math.round(s.money).toLocaleString('en-US'))),
-    el('span', 'Mules ', el('b', String(s.mules))),
-    el('span', 'Cart ', el('b', { class: g.cart.condition < 30 ? 'bad' : '' }, Math.round(g.cart.condition) + '%')),
+    el('span', 'Pack ', el('b', { class: load > 1 ? 'bad' : load > 0.85 ? 'warn' : '' },
+      `${Math.round(g.kit.load)}/${Sim.packCapacity(g)} lb`)),
+    el('span', 'Gear ', el('b', { class: g.kit.condition < 30 ? 'bad' : '' }, Math.round(g.kit.condition) + '%')),
     el('span', 'Pace ', el('b', Sim.PACES[g.pace].label || g.pace)),
     el('span', 'Rations ', el('b', Sim.RATIONS[g.rations].label || g.rations)),
     el('span', 'Fuel ', el('b', { class: (s.stove_fuel || 0) < 1 ? 'bad' : '' }, String(Math.round(s.stove_fuel || 0)))),
@@ -614,9 +647,15 @@ function wireGlobalKeys() {
   window.addEventListener('pointerdown', unlock);
   window.addEventListener('keydown', unlock);
 
+  // While a minigame owns the overlay canvas it owns the keyboard with it. Without
+  // this, Escape bails out of the ford *and* closes the panel underneath it, and the
+  // next Escape lands on the trail and opens settings on top of a running crossing.
+  const inMinigame = () => !!(state.overlayCanvas && state.overlayCanvas.classList.contains('interactive'));
+
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (inMinigame()) return;
 
     const onTrail = state.screen === 'trail';
     const key = e.key.toLowerCase();
@@ -646,6 +685,7 @@ function wireGlobalKeys() {
   window.addEventListener('keydown', (e) => {
     if (!/^[1-9]$/.test(e.key)) return;
     if (e.target instanceof HTMLInputElement) return;
+    if (inMinigame()) return;
     const active = document.querySelector('.screen.active [data-key="' + e.key + '"]');
     if (active) { e.preventDefault(); active.click(); }
   });

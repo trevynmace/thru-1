@@ -26,7 +26,7 @@ const party = [
 const state = {
   biome: 'desert', mile: 412, scroll: 0, walking: true, dayPhase: 0.5,
   weather: { kind: 'clear', severity: 0.5, tempF: 70 },
-  party, mules: 4, cartCondition: 82, landmark: null, elevation: 5200,
+  party, kitCondition: 82, landmark: null, elevation: 5200,
   night: false, camped: false,
 };
 
@@ -37,6 +37,11 @@ window.setScene = (patch) => {
   if (patch.mile !== undefined) state.mile = patch.mile;
   if (patch.camped !== undefined) state.camped = patch.camped;
   if (patch.elevation !== undefined) state.elevation = patch.elevation;
+  if (patch.scroll !== undefined) state.scroll = patch.scroll;
+  if (patch.walking !== undefined) state.walking = patch.walking;
+  // Pinning stops the harness driving mile and scroll for you, so a shot of one exact
+  // stretch of trail — a particular prop, a passing pack string — is reproducible.
+  if (patch.pin !== undefined) state.pin = patch.pin;
 };
 
 const ELEV = { desert: 3200, chaparral: 4200, sierra: 9800, alpine: 11800, forest: 5200, volcanic: 6400, rainforest: 3400 };
@@ -47,9 +52,11 @@ const scene = createScene(canvas);
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  state.scroll += dt * 34;
-  state.elevation = ELEV[state.biome] ?? 5000;
-  state.mile = MILE[state.biome] ?? 400;
+  if (!state.pin) {
+    state.scroll += dt * 34;
+    state.elevation = ELEV[state.biome] ?? 5000;
+    state.mile = MILE[state.biome] ?? 400;
+  }
   scene.render(state, dt);
   requestAnimationFrame(frame);
 }

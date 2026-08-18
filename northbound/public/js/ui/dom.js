@@ -64,14 +64,20 @@ export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 /** A standard bordered panel with head / body / foot. */
-export function panel({ title, meta, body, foot, cls = '' }) {
+export function panel({ title, meta, body, foot, cls = '', sticky = null }) {
+  // `sticky` pins a strip to the bottom edge of a scrolling panel. A tall panel — the
+  // store is the worst case — can push its confirm button below the fold on a short
+  // window, and a button you have to scroll to find is a button players miss.
+  const footNode = foot && el('div.panel-foot', foot);
   return el('div.panel' + (cls ? '.' + cls.split(' ').join('.') : ''),
     (title || meta) && el('div.panel-head',
       el('h2', title || ''),
       meta && el('div.meta', meta),
     ),
     body,
-    foot && el('div.panel-foot', foot),
+    (sticky || footNode) && (sticky
+      ? el('div.panel-sticky', sticky, footNode)
+      : footNode),
   );
 }
 
