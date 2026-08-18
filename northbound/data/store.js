@@ -8,23 +8,21 @@ import { ITEMS, ITEMS_BY_ID } from './items.js';
 /** Display order for a full-service outfitter. */
 export const STORE_STOCK = [
   'food',
-  'mule',
-  'spare_wheel', 'spare_axle', 'spare_hitch',
-  'spare_soles', 'spare_poles', 'spare_filter',
+  'spare_soles', 'spare_poles', 'spare_filter', 'spare_pack', 'spare_shelter',
   'clothing', 'puffy',
   'first_aid', 'electrolytes', 'blister_kit',
   'bear_can', 'ice_axe', 'stove_fuel', 'water_carry',
   'camp_chair', 'paperback', 'harmonica',
 ];
 
-// A tiny store cannot sell you a mule or a cart axle. These are the tiers.
+// A gas station cannot sell you a sixty-litre pack. These are the tiers.
 const TIER = {
   // Everything. Only the terminus outfitter and the big trail towns.
   full: STORE_STOCK,
 
-  // A real town with a gear shop, but no livestock and no cart parts beyond the basics.
+  // A real town with a gear shop: everything that wears out, plus layers and medical.
   town: [
-    'food', 'spare_soles', 'spare_poles', 'spare_filter', 'spare_wheel',
+    'food', 'spare_soles', 'spare_poles', 'spare_filter', 'spare_pack',
     'clothing', 'puffy', 'first_aid', 'electrolytes', 'blister_kit',
     'stove_fuel', 'water_carry', 'paperback',
   ],
@@ -44,8 +42,8 @@ const TIER = {
 // bear canister and the ice axe are actually required, so this is where they sell them.
 const SIERRA_GATEWAYS = new Set(['kennedy-meadows', 'kennedy', 'bishop', 'kearsarge', 'lone-pine']);
 
-// Stores big enough to sell you a replacement mule.
-const STOCK_TOWNS = new Set(['campo', 'tehachapi', 'kennedy-meadows', 'kennedy', 'tahoe', 'ashland', 'cascade-locks']);
+// Stores with a real gear wall — the ones that can replace a pack or a shelter.
+const OUTFITTERS = new Set(['campo', 'tehachapi', 'kennedy-meadows', 'kennedy', 'south-lake-tahoe', 'tahoe', 'ashland', 'cascade-locks']);
 
 /**
  * Which tier a landmark's store belongs to. Remoteness is encoded in the price
@@ -77,10 +75,9 @@ export function stockFor(landmark) {
     ids.add('bear_can');
     ids.add('ice_axe');
   }
-  if (STOCK_TOWNS.has(landmark.id)) {
-    ids.add('mule');
-    ids.add('spare_axle');
-    ids.add('spare_hitch');
+  if (OUTFITTERS.has(landmark.id)) {
+    ids.add('spare_pack');
+    ids.add('spare_shelter');
   }
   // A ford landmark that somehow has a store always has the thing you wish you had.
   if (landmark.ford) ids.add('water_carry');

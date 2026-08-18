@@ -46,7 +46,7 @@ export {
 export {
   ITEMS,
   ITEMS_BY_ID,
-  CART_PARTS,
+  GEAR_PARTS,
   priceOf,
 } from '../../../data/items.js';
 

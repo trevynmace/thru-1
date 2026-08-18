@@ -15,7 +15,7 @@ export const HEALTH_TIERS = [
 ];
 
 export const POINTS = {
-  perMule: 20,
+  perGearCondition: 0.6,   // the state of the kit you finish with
   perFoodLb: 1 / 25,
   perSparePart: 2,
   perClothing: 2,
@@ -23,7 +23,6 @@ export const POINTS = {
   perDollar: 1 / 5,
   perMile: 1 / 50,
   finishBonus: 400,
-  cartCondition: 0.4,   // per point of remaining cart condition
 };
 
 /** Highest first. `rank` is the first row whose `min` the total clears. */
@@ -46,7 +45,7 @@ function healthTier(h) {
 }
 
 function qtyOf(g, id) {
-  const key = id === 'mule' ? 'mules' : id;
+  const key = id;
   return Number(g?.supplies?.[key]) || 0;
 }
 
@@ -72,7 +71,6 @@ export function scoreGame(g) {
   }
   if (!living.length) add('Crew who finished', 0, 0);
 
-  add('Mules', qtyOf(g, 'mule'), qtyOf(g, 'mule') * POINTS.perMule);
   add('Food remaining (lb)', qtyOf(g, 'food'), qtyOf(g, 'food') * POINTS.perFoodLb);
 
   const spareIds = (ITEMS || []).filter((i) => i && typeof i.id === 'string' && i.id.startsWith('spare_')).map((i) => i.id);
@@ -88,8 +86,8 @@ export function scoreGame(g) {
   const cash = qtyOf(g, 'money');
   add('Cash on hand', Math.round(cash * 100) / 100, cash * POINTS.perDollar);
 
-  const cart = Math.max(0, Number(g?.cart?.condition) || 0);
-  add('Cart condition', Math.round(cart), cart * POINTS.cartCondition);
+  const kit = Math.max(0, Number(g?.kit?.condition) || 0);
+  add('Gear condition', Math.round(kit), kit * POINTS.perGearCondition);
 
   const miles = Math.max(0, Math.round(Number(g?.mile) || 0));
   add('Miles walked', miles, miles * POINTS.perMile);

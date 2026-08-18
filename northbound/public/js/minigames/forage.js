@@ -271,6 +271,7 @@ function createState(quality, biome, rng, bonus, duration, timeScale, o) {
     props: BIOME_PROPS[biome] || BIOME_PROPS.sierra,
     audio: o.audio || null,
     autoplay: !!o.autoplay,
+    aim: null, aimAge: 0, flee: null,
     t: 0, left: duration,
     lbs: 0, full: false, bitten: 0, mauled: false,
     picks: { berry: 0, mushroom: 0, fish: 0 },
@@ -389,7 +390,14 @@ function boot(canvas, S, finish) {
     if (S.paused || document.hidden) dt = 0;
 
     try {
-      if (dt > 0) update(S, dt, D, finish);
+      // Fixed-size steps, however much time the frame covers. A compressed clock (or a
+      // dropped frame) must not change how the physics behave, and a bang-bang input
+      // sampled once per 130 ms is not the same game as one sampled every 16 ms.
+      for (let left = dt; left > 0 && !settled;) {
+        const step = Math.min(left, 1 / 60);
+        update(S, step, D, finish);
+        left -= step;
+      }
       render(g, S, D, layers);
     } catch {
       // A render/update fault must never wedge the game — bail out cleanly.
@@ -915,29 +923,105 @@ function emitFx(D, kind, o) {
 // ---------------------------------------------------------------------------
 // Autopilot — used by the headless playtest and for balance runs.
 // ---------------------------------------------------------------------------
+/**
+ * The crew working the slope on its own.
+ *
+ * The one rule that matters here is *commitment*. Re-choosing the best node every frame
+ * looks smart and behaves like a dog in a field of rabbits: two nodes of similar value
+ * on either side of you cancel out, and a fish — which needs a second of standing still
+ * — never lands, because the moment you step onto it something else scores higher.
+ * So: pick a target, walk to it, hold until it is picked, and only give it up when it
+ * dies, gets dangerous, or the clock on it runs out.
+ */
 function autopilot(S, dt) {
   const h = S.hero;
   S.keys = Object.create(null);
   S.gathering = false;
+
+  // The bear ends the day, so it outranks everything. Back off as soon as it notices
+  // you, not once it is already running — by then there is no ground left to give.
   const b = S.bear;
-  // flee the bear first
-  if (b && (b.state === 'chase' || b.state === 'alert') && Math.hypot(b.x - h.x, (b.y - h.y) * 1.7) < 90) {
-    S.keys[b.x > h.x ? 'left' : 'right'] = true;
-    S.keys[b.y > h.y ? 'up' : 'down'] = true;
+  const bdist = b ? Math.hypot(b.x - h.x, (b.y - h.y) * 1.7) : 999;
+  // Best of all is never to be noticed. A wandering bear notices you at seventy-odd
+  // feet, and a chase you never start costs nothing, so give it a wide berth long
+  // before it looks up — this is most of what keeps the crew's haul on the hill.
+  const spooked = b && (b.state === 'chase' || b.state === 'alert');
+  if (spooked ? bdist < (b.state === 'chase' ? 160 : 105) : bdist < 96) {
+    S.aim = null;
+    // A hiker does 54 and a bear does 47, so this is winnable — but only in a straight
+    // line. Running diagonally splits the 54 between two axes and leaves barely 38 in
+    // the direction that matters, which is how you get caught while running away. So
+    // pick one axis, commit to it, and only change when it runs out of ground.
+    const f = S.flee || (S.flee = { axis: 'x', dir: 1 });
+    const roomFor = (axis, dir) => (axis === 'x'
+      ? (dir > 0 ? WORLD_W - 8 - h.x : h.x - 8)
+      : (dir > 0 ? FIELD_Y1 - h.y : h.y - FIELD_Y0));
+
+    if (roomFor(f.axis, f.dir) < 40) {
+      // Cornered on this axis. Take the other one, toward whichever end is further off.
+      const other = f.axis === 'x' ? 'y' : 'x';
+      const dir = roomFor(other, 1) >= roomFor(other, -1) ? 1 : -1;
+      if (roomFor(other, dir) > 24) { f.axis = other; f.dir = dir; }
+      else { f.dir = -f.dir; }                       // nowhere left: cut back past it
+    } else if (b.state !== 'chase') {
+      // Choose afresh only while it is still deciding, never mid-sprint.
+      const ax = h.x >= b.x ? 1 : -1;
+      f.axis = roomFor('x', ax) > 90 ? 'x' : 'y';
+      f.dir = f.axis === 'x' ? ax : (roomFor('y', 1) >= roomFor('y', -1) ? 1 : -1);
+    }
+
+    if (f.axis === 'x') S.keys[f.dir > 0 ? 'right' : 'left'] = true;
+    else S.keys[f.dir > 0 ? 'down' : 'up'] = true;
     return;
   }
-  let best = null, bd = 1e9;
-  for (const n of S.nodes) {
-    if (!n.alive) continue;
-    const sy = S.snake ? Math.hypot(n.x - S.snake.x, n.y - S.snake.y) : 99;
-    const d = Math.hypot(n.x - h.x, (n.y - h.y) * 1.4) / Math.max(0.5, n.v) + (sy < 22 ? 40 : 0);
-    if (d < bd) { bd = d; best = n; }
+  S.flee = null;
+
+  const danger = (n) => {
+    const sn = S.snake ? Math.hypot(n.x - S.snake.x, n.y - S.snake.y) : 999;
+    const be = b ? Math.hypot(n.x - b.x, (n.y - b.y) * 1.7) : 999;
+    return (sn < 24 ? 45 : 0) + (be < 120 ? 90 : 0);
+  };
+
+  // Hold the current target until it is picked or it stops existing. Dropping a target
+  // because something wandered near it re-opens the oscillation this function exists to
+  // avoid: danger belongs in the choice, not in the second-guessing.
+  let aim = S.aim;
+  if (aim) {
+    S.aimAge += dt;
+    if (!aim.alive || S.aimAge > 6) aim = null;
   }
-  if (!best) return;
-  const ty = best.type === 'fish' ? FIELD_Y0 + 2 : best.y;
-  if (Math.abs(best.x - h.x) > 2) S.keys[best.x > h.x ? 'right' : 'left'] = true;
-  if (Math.abs(ty - h.y) > 2) S.keys[ty > h.y ? 'down' : 'up'] = true;
-  if (nearNode(h, best)) S.gathering = true;
+
+  if (!aim) {
+    let bd = 1e9;
+    for (const n of S.nodes) {
+      if (!n.alive) continue;
+      // Value per second of walking, which is the only currency in a timed field.
+      const d = Math.hypot(n.x - h.x, (n.y - h.y) * 1.4) / Math.max(0.5, n.v) + danger(n);
+      if (d < bd) { bd = d; aim = n; }
+    }
+    S.aimAge = 0;
+  }
+  S.aim = aim;
+
+  // Thin country picks out faster than it grows back. Rather than stand in an empty
+  // patch waiting, drift down the creek so the next thing to come up is already close.
+  if (!aim) {
+    S.patrol = S.patrol || (h.x < WORLD_W / 2 ? 1 : -1);
+    if (h.x < 24) S.patrol = 1;
+    if (h.x > WORLD_W - 24) S.patrol = -1;
+    S.keys[S.patrol > 0 ? 'right' : 'left'] = true;
+    return;
+  }
+
+  // Fish are in the creek and the crew is on the bank, so stand at the water's edge and
+  // reach: walking "to" a fish means walking to the top of the walkable band.
+  const ty = aim.type === 'fish' ? FIELD_Y0 + 2 : aim.y;
+  if (Math.abs(aim.x - h.x) > 1.5) S.keys[aim.x > h.x ? 'right' : 'left'] = true;
+  if (Math.abs(ty - h.y) > 1.5) S.keys[ty > h.y ? 'down' : 'up'] = true;
+
+  // Gather whenever anything at all is in reach — standing on a berry on the way to a
+  // trout is free food, and holding the button is what lands the trout.
+  if (nearest(S, h)) S.gathering = true;
 }
 
 // ---------------------------------------------------------------------------

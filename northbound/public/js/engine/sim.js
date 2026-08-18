@@ -4,13 +4,13 @@
 // runs through `g.rng` (engine/rng.js) so `{ seed, rngCalls }` fully determines a run.
 //
 // The whole game is here: the daily tick (§5.2), health and ailments, the snow line,
-// the cart, fords, foraging, the store, and save serialization. `advanceDay` is the only
+// pack weight and gear, fords, foraging, the store, and save serialization. `advanceDay` is the only
 // thing the trail screen ever needs to call, and it must never throw — the UI drives it
 // once per frame-ish and a crash there would break the page.
 import {
   TOTAL_MILES, LANDMARKS, landmarkAtMile, nextLandmark, lastLandmark,
   biomeAtMile, elevAtMile, terrainFactor,
-  ITEMS, ITEMS_BY_ID, CART_PARTS, priceOf,
+  ITEMS, ITEMS_BY_ID, GEAR_PARTS, priceOf,
   AILMENTS, AILMENTS_BY_ID,
   rollEvent,
   OCCUPATIONS, NAME_POOL, generateTrailName, EPITAPHS, PORTRAIT_PARTS,
@@ -22,15 +22,15 @@ import { makeRng, randInt, pick, weighted, chance } from './rng.js';
 // ---------------------------------------------------------------------------------
 
 export const PACES = {
-  steady:    { id: 'steady',    label: 'Steady',    base: 19, healthCost: 0, cartWear: 0.85, spirit:  0.10, blurb: 'Dawn to mid-afternoon. You finish the day with legs left.' },
-  strenuous: { id: 'strenuous', label: 'Strenuous', base: 25, healthCost: 2, cartWear: 1.30, spirit: -0.25, blurb: 'Dawn to dusk, one long push, and a cold dinner.' },
-  grueling:  { id: 'grueling',  label: 'Grueling',  base: 31, healthCost: 5, cartWear: 2.00, spirit: -0.85, blurb: 'Headlamps on at both ends of the day. This breaks people.' },
+  steady:    { id: 'steady',    label: 'Steady',    base: 22, healthCost: 0, gearWear: 0.85, spirit:  0.10, blurb: 'Dawn to mid-afternoon. You finish the day with legs left.' },
+  strenuous: { id: 'strenuous', label: 'Strenuous', base: 30, healthCost: 2, gearWear: 1.30, spirit: -0.25, blurb: 'Dawn to dusk, one long push, and a cold dinner.' },
+  grueling:  { id: 'grueling',  label: 'Grueling',  base: 36, healthCost: 5, gearWear: 2.00, spirit: -0.85, blurb: 'Headlamps on at both ends of the day. This breaks people.' },
 };
 
 export const RATIONS = {
   filling: { id: 'filling', label: 'Filling', lbPerDay: 3, healthCost: 0, spirit:  0.25, blurb: 'Three pounds a head. Real dinners.' },
-  meager:  { id: 'meager',  label: 'Meager',  lbPerDay: 2, healthCost: 2, spirit: -0.20, blurb: 'Two pounds a head. Nobody is happy about it.' },
-  bare:    { id: 'bare',    label: 'Bare',    lbPerDay: 1, healthCost: 5, spirit: -0.65, blurb: 'One pound a head. This is how hikers get hollow.' },
+  meager:  { id: 'meager',  label: 'Meager',  lbPerDay: 2, healthCost: 3.4, spirit: -0.20, blurb: 'Two pounds a head. Nobody is happy about it.' },
+  bare:    { id: 'bare',    label: 'Bare',    lbPerDay: 1, healthCost: 8, spirit: -0.65, blurb: 'One pound a head. This is how hikers get hollow.' },
 };
 
 export const WEATHERS = ['clear', 'hot', 'rain', 'storm', 'hail', 'snow', 'smoke', 'fog', 'wind'];
@@ -55,24 +55,26 @@ export const DIFFICULTIES = {
 
 /**
  * Every tuned number in one place. These are the knobs the Monte-Carlo balance harness
- * sweeps, and the values below are the ones it settled on. Measured over 400 seeds per
- * policy, five mules, ranger, filling rations:
+ * sweeps, and the values below are the ones it settled on after the crew stopped
+ * hauling a wagon and started carrying their own packs. Measured over 150-200 seeds
+ * per policy, ranger, strenuous, filling rations:
  *
  *   departure x pace     win%     median finish     dominant loss
- *   March    strenuous    51%     day 176           the Sierra buries you (party-wipe)
- *   April    strenuous    81%     day 172           mixed
- *   May      strenuous    55%     day 157           the snow line catches you
- *   May      grueling     34%     day 161           grueling costs more health than it buys
- *   June     strenuous     2%     day 133           snowed off, almost always
+ *   March    strenuous    60%     day 212           the Sierra buries you (party-wipe)
+ *   April    strenuous    71%     day 189           the snow line catches you
+ *   May      strenuous    15%     day 172           snowed off, usually inside 150 miles
+ *   May      grueling      1%     —                 grueling costs more health than it buys
+ *   June     strenuous     0%     —                 there is not enough season left
  *
  *   player archetype     win%     notes
- *   good                 66%      resupplies, repairs the cart, rests when sick
- *   average              61%      same shape, thinner margins
- *   reckless              0%      grueling + bare rations + no resupply: starves by mile 600
+ *   good                 71%      packs light, resupplies often, replaces worn gear
+ *   average              87%      thinner rations, more cash, carries a bigger bag
+ *   reckless              0%      grueling + bare rations + no resupply: dead by mile 500
  *
- * Two properties are load-bearing and should be re-measured if these numbers move:
- * grueling must stay *worse* than strenuous for a healthy crew, and losses must stay
- * split between the snow line and party-wipe rather than collapsing onto one cause.
+ * Three properties are load-bearing and should be re-measured if these numbers move:
+ * grueling must stay *worse* than strenuous for a healthy crew; a light pack must beat
+ * a heavy one; and losses must stay split between the snow line and party-wipe rather
+ * than collapsing onto one cause.
  */
 export const BALANCE = {
   // --- health ---
@@ -83,6 +85,7 @@ export const BALANCE = {
   regenBase: 0.80,
   restBonus: 4.2,          // extra regen on a camp/zero day
   starveDrain: 12.0,       // SPEC §5.2 step 5
+  regenStarving: 1.0,      // what the body manages with empty food bags: almost nothing
   altitudeFloorFt: 9000,
   altitudePerKFt: 1.15,    // health per 1,000 ft above the floor
   overloadDrain: 1.2,
@@ -108,21 +111,29 @@ export const BALANCE = {
   spiritLowThreshold: 15,
   spiritPacePenalty: 0.88, // travel multiplier when the crew's morale bottoms out
 
-  // --- cart ---
-  cartBaseCapacityLb: 160,
-  cartCapacityPerMuleLb: 90,
-  // Wear is the slow, boring cost of every mile. It has to be small enough that a cart
-  // maintained at towns survives a season, and large enough that ignoring it is fatal.
-  // A well-mule'd, healthy crew on good ground should beat its nominal pace; a sick
-  // crew hauling the cart themselves should crawl. These set both ends of that band.
-  muleFloor: 0.60,
-  mulePerHead: 0.10,       // x min(mules, 5)  -> 1.10 at a full string
+  // --- packs and gear ---
+  // Nobody hauls a wagon up the Pacific Crest Trail. Everything the crew owns is on
+  // their backs, so the lever that Oregon Trail puts on oxen sits on *pack weight*
+  // here: a light kit walks fast, an overloaded one crawls, and what five people can
+  // carry is what sets the resupply cadence.
+  packCapacityPerHikerLb: 34,   // a comfortable full-day load, per person
+  packBaseLb: 12,               // shared kit that does not scale with crew size
+  // Speed as a function of load. At or under `packEasyRatio` of capacity you move at
+  // full speed; at capacity you are noticeably slower; over it you are suffering.
+  // The curve has a reward side and a punishment side, because going light genuinely
+  // makes you faster and this is a game about people who obsess over that.
+  packLightRatio: 0.32,         // at or below this you are moving light
+  packLightBonus: 1.12,         // travel multiplier when the packs are near empty
+  packEasyRatio: 0.68,          // neutral point: a comfortable load, no bonus, no cost
+  packFullPenalty: 0.86,        // multiplier at exactly 100% of capacity
+  packOverPenalty: 0.55,        // floor once well over capacity
   healthFloor: 0.60,
-  healthRange: 0.55,       // -> 1.15 at full health
-  cartWearScale: 0.42,
-  cartFloor: 0.78,         // travel multiplier at 0% condition (was 0.70)
-  cartRestRepair: 3.5,     // condition regained per camp day — the crew has tools
-  cartRepairCostPerPoint: 0.85,   // dollars per condition point at a store
+  healthRange: 0.55,            // -> 1.15 at full health
+  // Gear wears with every mile: tread goes, straps fray, filters silt up.
+  gearWearScale: 0.42,
+  gearFloor: 0.78,              // travel multiplier with the kit completely shot
+  gearRestRepair: 3.5,          // condition regained on a camp day — field repairs
+  gearReplaceCostPerPoint: 0.85, // dollars per condition point, replacing kit in town
   breakdownBase: 0.009,
   breakdownSlope: 0.042,   // × (1 - condition/100)
   breakdownPaceMult: { steady: 0.85, strenuous: 1.0, grueling: 1.35 },
@@ -146,9 +157,9 @@ export const BALANCE = {
   // --- snow line ---
   // Miles the snow line walks south per day, by calendar month. It is nearly idle in
   // spring, wakes up in August and slams shut in October.
-  snowRateByMonth: { 1: 30, 2: 30, 3: 4.5, 4: 4.5, 5: 4.5, 6: 5.0, 7: 5.5, 8: 8.5, 9: 12.0, 10: 20, 11: 30, 12: 30 },
-  snowCloseMonth: 10,      // the snow line reaches the Northern Terminus on...
-  snowCloseDay: 31,        // ...October 31. Everything upstream is integrated from here.
+  snowRateByMonth: { 1: 30, 2: 30, 3: 4.5, 4: 4.5, 5: 4.5, 6: 5.0, 7: 5.5, 8: 8.0, 9: 11.0, 10: 18, 11: 26, 12: 30 },
+  snowCloseMonth: 11,      // the snow line reaches the Northern Terminus on...
+  snowCloseDay: 6,         // ...November 6. Everything upstream is integrated from here.
 
   // --- events ---
   eventChance: 0.28,       // SPEC §5.2 step 12
@@ -254,16 +265,16 @@ export function fillTemplate(g, text, extra = {}) {
 // Setup
 // ---------------------------------------------------------------------------------
 
-const SUPPLY_ALIAS = { food: 'food', mule: 'mules' };
-/** supplies key for an item id ('food' -> food, 'mule' -> mules, otherwise the id). */
+const SUPPLY_ALIAS = { food: 'food' };
+/** supplies key for an item id (mostly the id itself). */
 function supplyKey(itemId) { return SUPPLY_ALIAS[itemId] || itemId; }
 
 export function getQty(g, itemId) { return num(g?.supplies?.[supplyKey(itemId)], 0); }
 function setQty(g, itemId, v) { g.supplies[supplyKey(itemId)] = Math.max(0, round2(v)); }
 
 function emptySupplies() {
-  const s = { food: 0, money: 0, mules: 0 };
-  for (const it of ITEMS) if (it && it.id && it.id !== 'food' && it.id !== 'mule') s[it.id] = 0;
+  const s = { food: 0, money: 0 };
+  for (const it of ITEMS) if (it && it.id && it.id !== 'food') s[it.id] = 0;
   return s;
 }
 
@@ -354,7 +365,7 @@ export function newGame(opts = {}) {
     pace: 'steady',
     rations: 'filling',
     supplies,
-    cart: { condition: 100, load: 0, parts: partsRecord() },
+    kit: { condition: 100, load: 0, parts: partsRecord() },
     weather: { kind: 'clear', tempF: 68, severity: 0.2, daysLeft: 2 },
     snowMile: 0,
     landmarkIndex: 0,
@@ -381,7 +392,7 @@ export function newGame(opts = {}) {
 
 function partsRecord() {
   const parts = {};
-  for (const p of (CART_PARTS || [])) parts[p] = 100;
+  for (const p of (GEAR_PARTS || [])) parts[p] = 100;
   return parts;
 }
 
@@ -569,24 +580,29 @@ function safeBiome(mile) {
 // Load / capacity
 // ---------------------------------------------------------------------------------
 
-export function cartCapacity(g) {
-  return BALANCE.cartBaseCapacityLb + BALANCE.cartCapacityPerMuleLb * Math.min(num(g.supplies.mules), 8);
+/**
+ * What the crew can carry. Everything is on their backs, so capacity scales with how
+ * many of them are still walking — losing someone means the survivors shoulder their
+ * share, which is exactly how it works out there.
+ */
+export function packCapacity(g) {
+  return BALANCE.packBaseLb + BALANCE.packCapacityPerHikerLb * Math.max(1, livingCount(g));
 }
 
 export function recomputeLoad(g) {
   let lb = 0;
   for (const it of ITEMS) {
-    if (!it || !it.id || it.id === 'mule') continue;
+    if (!it || !it.id) continue;
     lb += getQty(g, it.id) * num(it.weightLb, 1);
   }
-  g.cart.load = Math.round(lb);
-  return g.cart.load;
+  g.kit.load = Math.round(lb);
+  return g.kit.load;
 }
 
 function overloadRatio(g) {
-  const cap = cartCapacity(g);
+  const cap = packCapacity(g);
   if (cap <= 0) return 2;
-  return g.cart.load / cap;
+  return g.kit.load / cap;
 }
 
 function luxuryCount(g) {
@@ -656,8 +672,8 @@ export function advanceDay(g) {
     // 8. Spirit.
     tickSpirit(g, rep, { resting: false });
 
-    // 9. Cart.
-    tickCart(g, rep);
+    // 9. Gear wear and breakages.
+    tickGear(g, rep);
 
     // 10. Snow line.
     if (tickSnow(g)) { rep.ended = true; syncRng(g); return rep; }
@@ -701,7 +717,7 @@ function weatherLine(g) {
     hot: heavy ? 'Heat hammers the trail; the water carries feel light and wrong.' : 'It turns hot. The crew starts hiking before dawn.',
     rain: heavy ? 'Rain comes sideways and does not stop.' : 'A steady rain sets in.',
     storm: 'Thunder walks along the ridge. Everyone gets low and small.',
-    hail: 'Hail rattles off the cart like gravel.',
+    hail: 'Hail rattles off pack lids and hoods like gravel.',
     snow: heavy ? 'Snow. Real snow, filling the tread ahead.' : 'Snow flurries drift through the pass.',
     smoke: heavy ? 'Smoke swallows the ridgeline. Everything tastes like a campfire.' : 'Woodsmoke haze settles into the valley.',
     fog: 'Fog closes in; the trail goes quiet.',
@@ -710,16 +726,50 @@ function weatherLine(g) {
   return map[w.kind] || 'The weather turns.';
 }
 
+/**
+ * How much the load on everyone's back costs you.
+ *
+ * This is the lever Oregon Trail puts on oxen. Under about half of capacity a crew
+ * moves at its full nominal pace; by the time packs are full they are slower; past
+ * capacity the day stops being walking and starts being suffering. It is also why
+ * food has to be bought in five-to-seven-day blocks rather than by the season.
+ */
+export function packFactor(g) {
+  const ratio = overloadRatio(g);
+  const light = BALANCE.packLightRatio;
+  const easy = BALANCE.packEasyRatio;
+
+  // Near-empty packs, the day after a resupply is behind you: you fly.
+  if (ratio <= light) return BALANCE.packLightBonus;
+
+  // Light to comfortable: the bonus bleeds away.
+  if (ratio <= easy) {
+    const t = (ratio - light) / Math.max(0.001, easy - light);
+    return BALANCE.packLightBonus - (BALANCE.packLightBonus - 1) * t;
+  }
+
+  // Comfortable to full: it starts to cost you.
+  if (ratio <= 1) {
+    const t = (ratio - easy) / Math.max(0.001, 1 - easy);
+    return 1 - (1 - BALANCE.packFullPenalty) * t;
+  }
+
+  // Past capacity: this is no longer walking.
+  const over = Math.min(1, ratio - 1);
+  return clamp(BALANCE.packFullPenalty - (BALANCE.packFullPenalty - BALANCE.packOverPenalty) * over,
+    BALANCE.packOverPenalty, BALANCE.packLightBonus);
+}
+
 function travelDistance(g) {
   const pace = PACES[g.pace] || PACES.steady;
   const base = pace.base;
   const terrain = clamp(num(terrainFactor(g.mile), 1), 0.5, 1.3);
-  const muleFactor = BALANCE.muleFloor + BALANCE.mulePerHead * Math.min(num(g.supplies.mules), 5);
+  const loadFactor = packFactor(g);
   const healthFactor = BALANCE.healthFloor + BALANCE.healthRange * clamp(meanHealth(g) / 100, 0, 1);
   const wFactor = weatherSpeedFactor(g);
-  const cartFactor = BALANCE.cartFloor + (1 - BALANCE.cartFloor) * clamp(num(g.cart.condition) / 100, 0, 1);
+  const gearFactor = BALANCE.gearFloor + (1 - BALANCE.gearFloor) * clamp(num(g.kit.condition) / 100, 0, 1);
 
-  let m = base * terrain * muleFactor * healthFactor * wFactor * cartFactor;
+  let m = base * terrain * loadFactor * healthFactor * wFactor * gearFactor;
 
   // Ailments slow the whole crew (the party moves at the pace of its worst day).
   let ailMult = 1;
@@ -738,9 +788,6 @@ function travelDistance(g) {
   if (pack > 0) m *= 1 - (1 - BALANCE.snowpackPaceMin) * pack;
 
   if (meanSpirit(g) < BALANCE.spiritLowThreshold) m *= BALANCE.spiritPacePenalty;
-
-  const over = overloadRatio(g);
-  if (over > 1) m *= clamp(1 - (over - 1) * 0.55, 0.55, 1);
 
   if (livingCount(g) === 0) return 0;
   return Math.max(1, Math.floor(m));
@@ -781,8 +828,14 @@ function tickHealth(g, rep, { resting }) {
   const packCost = pack * BALANCE.snowpackHealth * (getQty(g, 'ice_axe') > 0 ? 0.55 : 1);
 
   for (const m of livingParty(g)) {
-    let d = BALANCE.regenRange * (1 - clamp(m.health, 0, 100) / 100) + BALANCE.regenBase;
-    d += healRate;
+    // Recovery is proportional to the health deficit — except when there is nothing to
+    // recover on. A starving body is not rebuilding itself, it is being spent, so the
+    // regen term is suppressed rather than merely offset. Without this, the drain and
+    // the deficit-driven regen cancel out and a crew can starve indefinitely.
+    let d = g.starving
+      ? BALANCE.regenStarving
+      : BALANCE.regenRange * (1 - clamp(m.health, 0, 100) / 100) + BALANCE.regenBase;
+    d += g.starving ? 0 : healRate;
     if (resting) d += BALANCE.restBonus;
     else {
       d -= pace.healthCost;
@@ -946,90 +999,146 @@ function tickSpirit(g, rep, { resting }) {
   }
 }
 
-function tickCart(g, rep) {
+function tickGear(g, rep) {
   const pace = PACES[g.pace] || PACES.steady;
   const terrain = clamp(num(terrainFactor(g.mile), 1), 0.5, 1.3);
   const rough = clamp(2 - terrain, 0.7, 1.4);
   const sev = clamp(num(g.weather.severity, 0.4), 0, 1);
   const over = overloadRatio(g);
 
-  let wear = pace.cartWear * BALANCE.cartWearScale * rough * (1 + sev * 0.25);
+  let wear = pace.gearWear * BALANCE.gearWearScale * rough * (1 + sev * 0.25);
   if (over > 1) wear *= 1 + (over - 1) * 0.8;
-  g.cart.condition = clamp(round2(g.cart.condition - wear), 0, 100);
+  g.kit.condition = clamp(round2(g.kit.condition - wear), 0, 100);
 
   const paceMult = num(BALANCE.breakdownPaceMult[g.pace], 1);
-  const p = (BALANCE.breakdownBase + BALANCE.breakdownSlope * (1 - g.cart.condition / 100)) * paceMult;
+  const p = (BALANCE.breakdownBase + BALANCE.breakdownSlope * (1 - g.kit.condition / 100)) * paceMult;
   if (!chance(g.rng, p)) {
-    // A separate, gentler roll for the things strapped to your body rather than the cart.
+    // The gentler roll: kit that is worn rather than broken.
     if (chance(g.rng, BALANCE.gearFailureBase)) gearFailure(g, rep);
     return;
   }
   breakPart(g, rep);
 }
 
+/**
+ * What breaks, how often, and what it reads like when it does.
+ *
+ * These are Oregon Trail's wagon parts, except they are the five things that actually
+ * end thru-hikes: tread, poles, filter, pack and shelter. `major` items are the ones
+ * that stop you where you stand; the rest hurt but can be walked through.
+ */
+const BREAKDOWNS = {
+  soles: {
+    weight: 3.4, major: true,
+    broke: '{who} steps out of the sole of a shoe on a rocky descent — the whole tread peels away like a banana skin.',
+    spared: 'A spare pair comes out of the pack and the ruined ones go in the next hiker box.',
+    stuck: 'There is no spare pair. Duct tape and cord get you moving again, badly, and slowly.',
+  },
+  poles: {
+    weight: 2.4, major: true,
+    broke: 'A trekking pole jams in a crack on a descent and {who} puts their whole weight on it before anything can be done. It folds at forty degrees.',
+    spared: 'The spare set comes out and the bent one gets kept for a tent stake.',
+    stuck: 'No spare set. {who} walks the rest of the week off-balance and knows it in both knees.',
+  },
+  filter: {
+    weight: 2.2, major: true,
+    broke: 'The water filter finally silts up solid. Squeezing it does nothing but split the seam.',
+    spared: 'A spare cartridge goes on and the old one is buried in a hiker box.',
+    stuck: 'No spare cartridge. Everything gets boiled from here, which costs fuel and time, or drunk on faith.',
+  },
+  pack: {
+    weight: 1.6, major: true,
+    broke: "{who}'s shoulder strap tears out of the pack body halfway up a climb, and the whole load swings.",
+    spared: 'The spare pack comes out and the load is redistributed over an hour of swearing.',
+    stuck: 'No spare pack. It gets stitched with dental floss and carried carefully.',
+  },
+  shelter: {
+    weight: 1.4, major: true,
+    broke: 'A tent pole snaps in a gust and the shelter folds flat onto whoever was already asleep in it.',
+    spared: 'The repair kit splints the pole. It will hold if nobody leans on it.',
+    stuck: 'No repair kit. Two people share a shelter that is now more of a tarp.',
+  },
+};
+
 function breakdownTable() {
-  const rows = [];
-  for (const p of (CART_PARTS || [])) rows.push({ part: p, cart: true, weight: 3 });
-  for (const [p, w] of [['soles', 2], ['poles', 1.4], ['filter', 1.4]]) {
-    if (ITEMS_BY_ID[`spare_${p}`]) rows.push({ part: p, cart: false, weight: w });
-  }
-  return rows;
+  return Object.entries(BREAKDOWNS)
+    .filter(([part]) => ITEMS_BY_ID[`spare_${part}`])
+    .map(([part, def]) => ({ part, weight: def.weight, def }));
 }
 
 function breakPart(g, rep) {
-  const table = breakdownTable().filter((r) => r.cart);
+  const table = breakdownTable();
   const row = weighted(g.rng, table, (r) => r.weight) || table[0];
   if (!row) return;
-  const part = row.part;
+  const { part, def } = row;
   const spareId = `spare_${part}`;
+  const victim = pick(g.rng, livingParty(g));
+  const who = victim ? (victim.trailName || victim.name) : 'somebody';
+  const say = (t) => String(t).replace(/\{who\}/g, who);
+
   rep.breakdown = part;
-  if (g.cart.parts) g.cart.parts[part] = 0;
+  if (g.kit.parts) g.kit.parts[part] = 0;
 
   if (getQty(g, spareId) >= 1) {
     setQty(g, spareId, getQty(g, spareId) - 1);
-    if (g.cart.parts) g.cart.parts[part] = 100;
-    g.cart.condition = clamp(g.cart.condition + 22, 0, 100);
+    if (g.kit.parts) g.kit.parts[part] = 100;
+    g.kit.condition = clamp(g.kit.condition + 22, 0, 100);
     recomputeLoad(g);
-    rep.lines.push(logLine(g, 'event', `The cart's ${part} shears through. You have a spare ${part}; it is swapped in before dinner.`));
+    rep.lines.push(logLine(g, 'event', `${say(def.broke)} ${say(def.spared)}`));
     return;
   }
-  g.cart.condition = clamp(g.cart.condition - 18, 0, 100);
+
+  g.kit.condition = clamp(g.kit.condition - 18, 0, 100);
   const lost = randInt(g.rng, 1, 3);
-  rep.lines.push(logLine(g, 'event', `The cart's ${part} shears through and there is no spare. ${lost} day${lost > 1 ? 's' : ''} lost bodging a repair.`));
+  rep.lines.push(logLine(g, 'event',
+    `${say(def.broke)} ${say(def.stuck)} ${lost} day${lost > 1 ? 's' : ''} lost to it.`));
   for (const m of livingParty(g)) m.spirit = clamp(m.spirit - 4, 0, 100);
   const sub = passDays(g, lost, { resting: false, reason: 'repair' });
   for (const l of sub.lines) rep.lines.push(l);
   for (const d of sub.deaths) rep.deaths.push(d);
-  if (g.cart.parts) g.cart.parts[part] = 60;
+  if (g.kit.parts) g.kit.parts[part] = 60;
 }
 
+/**
+ * The slow half of gear attrition: kit that is worn but not yet broken.
+ *
+ * A major failure (breakPart) stops you where you stand. This is the other kind — bald
+ * tread that raises a blister, a filter that is technically still passing water. It
+ * costs health rather than days, and it gets more likely as the kit degrades.
+ */
 function gearFailure(g, rep) {
-  const table = breakdownTable().filter((r) => !r.cart);
-  const row = weighted(g.rng, table, (r) => r.weight);
-  if (!row) return;
-  const part = row.part;
-  const spareId = `spare_${part}`;
-  rep.breakdown = part;
-  const label = { soles: 'a pair of boots blows out', poles: 'a trekking pole snaps at the joint', filter: 'the water filter clogs solid' }[part];
-
-  if (getQty(g, spareId) >= 1) {
-    setQty(g, spareId, getQty(g, spareId) - 1);
-    recomputeLoad(g);
-    rep.lines.push(logLine(g, 'event', `On a talus field ${label}. You carry a spare — five minutes and it is handled.`));
-    return;
-  }
-  rep.lines.push(logLine(g, 'event', `On a talus field ${label}, and nobody has a spare.`));
   const victim = pick(g.rng, livingParty(g));
   if (!victim) return;
-  if (part === 'filter') {
-    const def = AILMENTS_BY_ID.giardia || pick(g.rng, ailmentCandidates(g));
-    if (def && chance(g.rng, 0.55)) applyAilmentTo(g, rep, victim, def);
-  } else {
-    victim.health = clamp(victim.health - (part === 'soles' ? 7 : 4), 0, 100);
-    if (victim.health <= 0) killMember(g, rep, victim, 'exhaustion');
-    const blist = AILMENTS_BY_ID.blisters;
-    if (part === 'soles' && blist && chance(g.rng, 0.5)) applyAilmentTo(g, rep, victim, blist);
+
+  const worn = clamp(1 - num(g.kit.condition, 100) / 100, 0, 1);
+  const kind = weighted(g.rng, [
+    { id: 'tread', weight: 3 },
+    { id: 'water', weight: 2 },
+    { id: 'straps', weight: 2 },
+  ], (r) => r.weight) || { id: 'tread' };
+  const who = victim.trailName || victim.name;
+
+  if (kind.id === 'water' && getQty(g, 'spare_filter') < 1) {
+    rep.lines.push(logLine(g, 'health',
+      `The filter is passing water more slowly than it should. ${who} drinks anyway.`));
+    const def = AILMENTS_BY_ID.giardia;
+    if (def && chance(g.rng, 0.35 + worn * 0.3)) applyAilmentTo(g, rep, victim, def);
+    return;
   }
+
+  if (kind.id === 'tread') {
+    rep.lines.push(logLine(g, 'health',
+      `The tread on ${who}'s shoes is down to nothing and the trail is all small sharp rock.`));
+    victim.health = clamp(victim.health - (4 + worn * 4), 0, 100);
+    const blist = AILMENTS_BY_ID.blisters;
+    if (blist && chance(g.rng, 0.4 + worn * 0.3)) applyAilmentTo(g, rep, victim, blist);
+  } else {
+    rep.lines.push(logLine(g, 'health',
+      `A pack strap has been digging into ${who} for three days and the shoulder is raw.`));
+    victim.health = clamp(victim.health - (3 + worn * 3), 0, 100);
+  }
+
+  if (victim.health <= 0) killMember(g, rep, victim, 'exhaustion');
   for (const m of livingParty(g)) m.spirit = clamp(m.spirit - 2, 0, 100);
 }
 
@@ -1116,7 +1225,7 @@ function passDays(g, n, { resting = true, reason = 'rest' } = {}) {
     if (resting) {
       g.stats.restDays += 1;
       // A layover is also a maintenance day — this is the crew's only free repair.
-      g.cart.condition = clamp(round2(g.cart.condition + BALANCE.cartRestRepair), 0, 100);
+      g.kit.condition = clamp(round2(g.kit.condition + BALANCE.gearRestRepair), 0, 100);
     }
     rollWeather(g);
     const rep = emptyReport();
@@ -1137,16 +1246,17 @@ function passDays(g, n, { resting = true, reason = 'rest' } = {}) {
 }
 
 /**
- * Pay somebody with a workshop to true the wheels and re-tension the frame.
- * Only worth doing where there is a road, which is exactly where the stores are.
+ * Replace the worn-out half of the kit at an outfitter: new tread, new cartridges, a
+ * strap re-stitched, a pole splinted properly. Only possible where there is a road,
+ * which is exactly where the stores are.
  * @returns {{ok:boolean, reason?:string, cost?:number, restored?:number}}
  */
-export function repairCart(g, mult = 1) {
+export function replaceGear(g, mult = 1) {
   try {
     if (!g || g.status !== 'playing') return { ok: false, reason: 'The run is over.' };
-    const missing = 100 - num(g.cart.condition);
-    if (missing < 1) return { ok: false, reason: 'The cart is already sound.' };
-    const rate = BALANCE.cartRepairCostPerPoint * (Number(mult) || 1);
+    const missing = 100 - num(g.kit.condition);
+    if (missing < 1) return { ok: false, reason: 'The kit is in good shape. Nothing worth replacing.' };
+    const rate = BALANCE.gearReplaceCostPerPoint * (Number(mult) || 1);
     const money = num(g.supplies.money);
     if (money < rate) return { ok: false, reason: 'You cannot afford even an hour of their time.' };
     // Spend what you have, up to a full restoration.
@@ -1154,17 +1264,17 @@ export function repairCart(g, mult = 1) {
     const cost = round2(points * rate);
     g.supplies.money = round2(money - cost);
     g.stats.moneySpent = round2(g.stats.moneySpent + cost);
-    g.cart.condition = clamp(round2(g.cart.condition + points), 0, 100);
-    if (g.cart.parts) for (const k of Object.keys(g.cart.parts)) g.cart.parts[k] = Math.max(g.cart.parts[k], g.cart.condition);
-    logLine(g, 'store', `$${cost.toFixed(2)} of work on the cart. It rolls at ${Math.round(g.cart.condition)}%.`);
+    g.kit.condition = clamp(round2(g.kit.condition + points), 0, 100);
+    if (g.kit.parts) for (const k of Object.keys(g.kit.parts)) g.kit.parts[k] = Math.max(g.kit.parts[k], g.kit.condition);
+    logLine(g, 'store', `$${cost.toFixed(2)} on new gear. The kit is at ${Math.round(g.kit.condition)}%.`);
     return { ok: true, cost, restored: points };
-  } catch { return { ok: false, reason: 'Nobody here works on carts.' }; }
+  } catch { return { ok: false, reason: 'Nobody here stocks what you need.' }; }
 }
 
-/** What a full repair would cost here, for the store UI. */
-export function repairQuote(g, mult = 1) {
-  const missing = Math.max(0, 100 - num(g?.cart?.condition));
-  return round2(missing * BALANCE.cartRepairCostPerPoint * (Number(mult) || 1));
+/** What a full re-kit would cost here, for the store UI. */
+export function gearQuote(g, mult = 1) {
+  const missing = Math.max(0, 100 - num(g?.kit?.condition));
+  return round2(missing * BALANCE.gearReplaceCostPerPoint * (Number(mult) || 1));
 }
 
 /** Camp for n days: no miles, better recovery, morale up, snow line keeps coming. */
@@ -1280,8 +1390,8 @@ export function useItem(g, itemId, memberIndex) {
 // Effects
 // ---------------------------------------------------------------------------------
 
-const EFFECT_SPECIALS = new Set(['food', 'money', 'mules', 'miles', 'spirit', 'health', 'days',
-  'ailment', 'kill', 'partHealth', 'cartCondition', 'weather']);
+const EFFECT_SPECIALS = new Set(['food', 'money', 'miles', 'spirit', 'health', 'days',
+  'ailment', 'kill', 'partHealth', 'kitCondition', 'weather']);
 
 /** Every legal effect key from SPEC §3.4, applied to `g`. Returns human-readable lines. */
 export function applyEffects(g, effects) {
@@ -1303,13 +1413,6 @@ export function applyEffects(g, effects) {
       const delta = round2(g.supplies.money - before);
       if (delta < 0) g.stats.moneySpent = round2(g.stats.moneySpent + Math.abs(delta));
       if (delta) lines.push(logLine(g, 'event', delta > 0 ? `+$${Math.abs(delta).toFixed(2)}.` : `-$${Math.abs(delta).toFixed(2)}.`));
-    }
-    if ('mules' in effects) {
-      const v = num(effects.mules);
-      const before = num(g.supplies.mules);
-      g.supplies.mules = Math.max(0, Math.round(before + v));
-      const delta = g.supplies.mules - before;
-      if (delta) lines.push(logLine(g, 'event', delta > 0 ? `You gain ${delta} mule${delta > 1 ? 's' : ''}.` : `You lose ${Math.abs(delta)} mule${Math.abs(delta) > 1 ? 's' : ''}.`));
     }
     // Item quantities (any id in the catalog).
     for (const key of Object.keys(effects)) {
@@ -1351,18 +1454,18 @@ export function applyEffects(g, effects) {
       lines.push(...rep.lines);
       if (v) lines.push(logLine(g, 'health', v > 0 ? 'Everyone feels a bit better.' : 'The crew takes a beating.'));
     }
-    if ('cartCondition' in effects) {
-      g.cart.condition = clamp(round2(g.cart.condition + num(effects.cartCondition)), 0, 100);
-      lines.push(logLine(g, 'event', `The cart is at ${Math.round(g.cart.condition)}%.`));
+    if ('kitCondition' in effects) {
+      g.kit.condition = clamp(round2(g.kit.condition + num(effects.kitCondition)), 0, 100);
+      lines.push(logLine(g, 'event', `The kit is at ${Math.round(g.kit.condition)}%.`));
     }
     if ('partHealth' in effects) {
       const v = num(effects.partHealth);
-      const keys = Object.keys(g.cart.parts || {});
+      const keys = Object.keys(g.kit.parts || {});
       const key = pick(g.rng, keys);
       if (key) {
-        g.cart.parts[key] = clamp(round2(num(g.cart.parts[key], 100) + v), 0, 100);
-        lines.push(logLine(g, 'event', `The ${key} is at ${Math.round(g.cart.parts[key])}%.`));
-        if (g.cart.parts[key] <= 0) {
+        g.kit.parts[key] = clamp(round2(num(g.kit.parts[key], 100) + v), 0, 100);
+        lines.push(logLine(g, 'event', `The ${key} is at ${Math.round(g.kit.parts[key])}%.`));
+        if (g.kit.parts[key] <= 0) {
           const rep = emptyReport();
           breakPart(g, rep);
           lines.push(...rep.lines);
@@ -1496,10 +1599,18 @@ export function resolveFord(g, method, outcome) {
         out.losses.food = foodLost;
         out.lines.push(logLine(g, 'event', `${foodLost} lb of food washes downstream.`));
       }
-      if (severity > 0.45 && num(g.supplies.mules) > 0 && chance(g.rng, severity * 0.55)) {
-        g.supplies.mules = Math.max(0, num(g.supplies.mules) - 1);
-        out.losses.mules = 1;
-        out.lines.push(logLine(g, 'event', 'A mule is swept into the strainer and does not come out.'));
+      // A swamped crossing takes gear off people's backs — the classic way a thru-hike
+      // ends is watching your pack go downstream without you.
+      if (severity > 0.45 && chance(g.rng, severity * 0.55)) {
+        const lost = pick(g.rng, GEAR_PARTS.map((p) => `spare_${p}`).filter((id) => getQty(g, id) > 0));
+        if (lost) {
+          setQty(g, lost, getQty(g, lost) - 1);
+          out.losses[lost] = 1;
+          out.lines.push(logLine(g, 'event', 'A pack is torn off a shoulder and goes down the strainer. Some of the spares go with it.'));
+        } else {
+          g.kit.condition = clamp(g.kit.condition - 14, 0, 100);
+          out.lines.push(logLine(g, 'event', 'Everything comes out the far side soaked, silted and worse for it.'));
+        }
       }
       const dmg = Math.round(6 + severity * 22);
       const rep = emptyReport();
@@ -1649,8 +1760,9 @@ export function deserialize(json) {
     m.spirit = clamp(num(m.spirit, 50), 0, 100);
   }
   o.supplies = { ...emptySupplies(), ...(o.supplies || {}) };
-  o.cart = o.cart || { condition: 100, load: 0, parts: partsRecord() };
-  o.cart.parts = { ...partsRecord(), ...(o.cart.parts || {}) };
+  o.kit = o.kit || o.cart || { condition: 100, load: 0, parts: partsRecord() };
+  delete o.cart;
+  o.kit.parts = { ...partsRecord(), ...(o.kit.parts || {}) };
   o.weather = o.weather || { kind: 'clear', tempF: 60, severity: 0.2, daysLeft: 1 };
   o.log = Array.isArray(o.log) ? o.log : [];
   o.firedEvents = Array.isArray(o.firedEvents) ? o.firedEvents : [];

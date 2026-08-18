@@ -1,6 +1,7 @@
 // NORTHBOUND — title, settings, help and hall-of-fame screens.
 import { el, panel, button, mountTo, fmtNum } from '../dom.js';
 import { Audio } from '../../audio/audio.js';
+import { getPref, setPref } from '../../engine/prefs.js';
 
 // The router owns every screen node, so the title builds its own markup. The
 // "Continue" entry only appears once a save file has actually been read back.
@@ -40,7 +41,7 @@ export function title(ctx) {
       el('h1.logo', 'NORTHBOUND'),
       el('p.subtitle', 'two thousand six hundred and fifty miles'),
       el('p.tagline',
-        'Five hikers, a gear cart and a string of mules leave the Mexican border in spring. ',
+        'Five hikers walk north from the Mexican border in spring, carrying everything they own. ',
         'Canada is a long way north, and the snow is already thinking about the passes.'),
     ),
     menu,
@@ -66,9 +67,33 @@ export function settings(ctx) {
     }),
   );
 
+  // Not everyone came for an arcade cabinet. Handing the crossing and the forage day to
+  // the crew costs nothing in fidelity — they walk it competently, the way a real crew
+  // would — and it keeps the trail open to people who cannot play a twitch minigame.
+  const autoBtn = button('', () => {
+    const next = !getPref('autoMinigames');
+    setPref('autoMinigames', next);
+    Audio.sfx(next ? 'select' : 'back');
+    paintAuto();
+  }, { cls: 'small' });
+  function paintAuto() {
+    const on = getPref('autoMinigames');
+    mountTo(autoBtn, on ? 'The crew handles it' : 'I play them myself');
+    autoBtn.classList.toggle('primary', on);
+  }
+  paintAuto();
+
   const body = el('div.stack',
     slider('Music', musicVol, (v) => { Audio.setMusicVolume(v); }),
     slider('Sound effects', sfxVol, (v) => { Audio.setSfxVolume(v); Audio.sfx('click'); }),
+    el('hr.divider'),
+    el('div.field',
+      el('label', 'River crossings and foraging'),
+      autoBtn,
+      el('p.prose.small.faint', { style: { marginTop: '8px' } },
+        'Fords and forage days are hands-on by default. Switch this and the crew plays them ',
+        'for you — a little worse than a good player, a lot better than panicking.'),
+    ),
     el('hr.divider'),
     el('p.prose.small',
       'Northbound autosaves after every day on the trail. Your run also lives in this browser, ',
@@ -107,12 +132,15 @@ export function help(ctx) {
       'Leave in <b>March</b> and you reach the High Sierra while it is still buried: postholing, whiteouts, ' +
       'and creeks at peak melt. Leave in <b>June</b> and the passes are dry but the snow line is behind you ' +
       'from day one. <b>April</b> is the answer most crews land on, which does not make it the only one.'),
-    ...section('The cart wears out',
-      'Every mile grinds it down, and a worn cart drags. Rest days let the crew work on it, and any town with ' +
-      'a road will true the wheels for money. Ignore it and you will spend the season getting slower.'),
+    ...section('The kit wears out',
+      'Every mile grinds it down, and worn gear is slow gear. Camp days let the crew do field repairs, and any ' +
+      'town with a road will sell you new tread. Ignore it and you will spend the season getting slower.'),
+    ...section('Weight is miles',
+      'Everything you own is on your back. A light kit walks fast; a full pack of food walks slowly, which is ' +
+      'why you buy five or six days at a time and resupply in town rather than carrying a season of dinners.'),
     ...section('Things break',
-      'Mules go lame. Cart wheels split. Filters clog and soles delaminate. Spares are cheap at the terminus and ' +
-      'painful to need at Sonora Pass. Buy more than you think you need.'),
+      'Tread delaminates. Poles fold. Filters silt up, straps tear out of packs, and tent poles snap in the wind. ' +
+      'Spares are cheap at the terminus and painful to need at Sonora Pass. Buy more than you think you need.'),
     ...section('Rivers',
       'Snowmelt fords are the classic way to lose a crew. You can wade it, rock-hop upstream, pay for a shuttle, ' +
       'or camp and cross in the cold morning when the water has dropped. Deep and raging means somebody swims.'),

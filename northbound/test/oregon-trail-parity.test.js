@@ -105,10 +105,10 @@ test('parity: every store sells the hunting consumable', () => {
   }
 });
 
-test('parity: the outfitting store carries food, stock, spares and clothing', () => {
+test('parity: the outfitting store carries food, spares and clothing', () => {
   const campo = LANDMARKS.find((l) => l.id === 'campo');
   const stock = stockFor(campo);
-  for (const id of ['food', 'mule', 'spare_wheel', 'spare_axle', 'spare_hitch', 'clothing', 'stove_fuel']) {
+  for (const id of ['food', 'spare_soles', 'spare_poles', 'spare_filter', 'spare_pack', 'clothing', 'stove_fuel']) {
     assert.ok(stock.includes(id), `the terminus outfitter should stock ${id}`);
     assert.ok(ITEMS_BY_ID[id], `${id} should be a real item`);
   }
@@ -160,16 +160,15 @@ test('parity: the tally counts crew by health, stock, supplies and cash', () => 
   const g = fresh();
   g.mile = 2650;
   g.status = 'won';
-  g.supplies.mules = 4;
   g.supplies.food = 120;
   g.supplies.clothing = 3;
   g.supplies.stove_fuel = 2;
-  g.supplies.spare_wheel = 1;
+  g.supplies.spare_soles = 1;
   g.supplies.money = 300;
 
   const score = scoreGame(g);
   const labels = score.rows.map((r) => r.label.toLowerCase()).join(' | ');
-  for (const want of ['crew', 'mules', 'food', 'spare parts', 'clothing', 'stove fuel', 'cash']) {
+  for (const want of ['crew', 'food', 'spare parts', 'clothing', 'stove fuel', 'gear condition', 'cash']) {
     assert.ok(labels.includes(want), `the tally should mention ${want} — got: ${labels}`);
   }
   assert.ok(score.total > 0);

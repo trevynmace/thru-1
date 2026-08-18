@@ -30,7 +30,7 @@
  *       `pickup` and `level_up` SFX so the UI answers the score.
  *
  *   WHEEL  [0, 4]                  a rocking bare fifth
- *       The cart. Every travel cue rides on it: `trail_desert`
+ *       The walk. Every travel cue rides on it: `trail_desert`
  *       (offbeat plucks), `trail_sierra` (drone), `trail_forest`
  *       (marimba), `ford` (16th tremolo), `danger` (ostinato).
  *

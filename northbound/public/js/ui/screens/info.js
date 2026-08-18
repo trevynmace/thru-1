@@ -67,7 +67,9 @@ export function map(ctx) {
     el('div.inline', { style: { marginTop: '12px' } },
       el('span.gold', `${fmtNum(Math.round(g.mile))} mi`),
       el('span.faint', `of ${fmtNum(TOTAL_MILES)} — ${pct.toFixed(1)}%`),
-      el('span.cold', `snow line at mile ${fmtNum(Math.round(g.snowMile))}`),
+      el('span.cold', g.snowMile > TOTAL_MILES
+        ? `snow line still north of the border — ${ctx.Sim.snowDaysOfSlack(g)} days of slack`
+        : `snow line at mile ${fmtNum(Math.round(g.snowMile))} — ${ctx.Sim.snowDaysOfSlack(g)} days of slack`),
       el('span.muted', `${fmtNum(Math.round(elevAtMile(g.mile)))} ft`),
     ),
     el('hr.divider'),
@@ -88,32 +90,33 @@ export function pack(ctx) {
 
   const owned = ITEMS.filter((it) => (s[it.id] || 0) > 0);
   const load = owned.reduce((sum, it) => sum + (s[it.id] || 0) * (it.weightLb || 0), 0);
-  const capacity = 120 + g.supplies.mules * 160;
+  const capacity = ctx.Sim.packCapacity(g);
+  const perHiker = Math.round(load / Math.max(1, g.party.filter((m) => m.alive).length));
 
   const body = el('div',
     kv([
       ['Money', fmtMoney(s.money)],
       ['Food', Math.round(s.food) + ' lb'],
-      ['Mules', String(s.mules)],
-      ['Cart condition', Math.round(g.cart.condition) + '%'],
-      ['Load', `${fmtNum(Math.round(load))} / ${fmtNum(capacity)} lb`],
+      ['Gear condition', Math.round(g.kit.condition) + '%'],
+      ['On your backs', `${fmtNum(Math.round(load))} / ${fmtNum(capacity)} lb`],
+      ['Each', `${perHiker} lb a head`],
       ['Miles walked', fmtNum(Math.round(g.stats.milesHiked || g.mile))],
     ]),
     el('div', { style: { marginTop: '10px' } }, meter((load / capacity) * 100)),
     load > capacity
-      ? el('p.prose.small.bad', 'You are over-loaded. The cart drags and everybody feels it.')
-      : el('p.prose.small.faint', 'Weight slows the cart. Everything you carry is a choice.'),
-    el('h3', 'In the cart'),
+      ? el('p.prose.small.bad', 'Over-loaded. Hip belts are cinched to nothing and the miles are going to show it.')
+      : el('p.prose.small.faint', 'Weight is miles. Every pound in here is a pound somebody carries to Canada.'),
+    el('h3', 'On your backs'),
     el('div.scroller', el('div.rows', owned.map((it) => el('div.row',
       itemIcon(it.id),
       el('div.grow', el('div.name', it.name), el('div.sub', it.blurb)),
       el('span.num', fmtNum(Math.round(s[it.id])) + (it.unit === 'lb' ? ' lb' : '')),
     )))),
-    owned.length === 0 ? el('p.prose.small.bad', 'The cart is empty. This is a serious problem.') : null,
+    owned.length === 0 ? el('p.prose.small.bad', 'The packs are empty. This is a serious problem.') : null,
   );
 
   return {
-    node: panel({ title: 'The cart', meta: `mile ${fmtNum(Math.round(g.mile))}`, body, foot: button('Close', () => ctx.close(), { cls: 'primary' }) }),
+    node: panel({ title: 'The packs', meta: `mile ${fmtNum(Math.round(g.mile))}`, body, foot: button('Close', () => ctx.close(), { cls: 'primary' }) }),
   };
 }
 

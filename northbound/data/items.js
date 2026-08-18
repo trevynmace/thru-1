@@ -1,10 +1,11 @@
 // NORTHBOUND — the outfitting catalog.
 //
 // Prices are 2020s dollars at a store multiplier of 1.0 (the Campo outfitter).
-// `weightLb` is what one unit adds to the cart load; mules carry themselves.
+// `weightLb` is what one unit adds to the load on the crew's backs. It is the most
+// important number in the file: pack weight is what sets your daily mileage.
 // `icon` must match an atlas frame, which the baker generates as `item_<id>`.
 //
-// The sim references `food`, `mule`, the three cart spares, and the luxury ids
+// The sim references `food`, the five gear spares, and the luxury ids
 // by name. Do not rename them.
 
 export const ITEMS = [
@@ -21,40 +22,9 @@ export const ITEMS = [
     max: 2000,
   },
 
-  // --- cart parts -----------------------------------------------------------
-  {
-    id: 'spare_wheel',
-    name: 'Spare Wheel',
-    unit: 'each',
-    price: 38,
-    weightLb: 9,
-    category: 'parts',
-    icon: 'item_spare_wheel',
-    blurb: 'A spoked wheel with a fat tire. Heavy to carry, ruinous to need and not have.',
-    max: 6,
-  },
-  {
-    id: 'spare_axle',
-    name: 'Spare Axle',
-    unit: 'each',
-    price: 26,
-    weightLb: 12,
-    category: 'parts',
-    icon: 'item_spare_axle',
-    blurb: 'Cold-rolled steel bar, threaded at both ends. It bends before it snaps, which is a mercy.',
-    max: 6,
-  },
-  {
-    id: 'spare_hitch',
-    name: 'Spare Hitch',
-    unit: 'each',
-    price: 18,
-    weightLb: 5,
-    category: 'parts',
-    icon: 'item_spare_hitch',
-    blurb: 'The pin and yoke that hold the cart to the mules. Small, cheap, and the piece that fails first.',
-    max: 6,
-  },
+  // --- the gear that actually fails ------------------------------------------
+  // Oregon Trail's wheel / axle / tongue. On a thru-hike the things that break
+  // and stop you are your shoes, your poles, your filter, your pack and your shelter.
   {
     id: 'spare_soles',
     name: 'Spare Shoes',
@@ -87,6 +57,29 @@ export const ITEMS = [
     icon: 'item_spare_filter',
     blurb: 'Hollow fiber cartridge. One hard freeze ruins it without leaving a mark you can see.',
     max: 10,
+  },
+
+  {
+    id: 'spare_pack',
+    name: 'Spare Pack',
+    unit: 'each',
+    price: 210,
+    weightLb: 2.1,
+    category: 'parts',
+    icon: 'item_spare_pack',
+    blurb: 'Sixty litres of ultralight fabric that will eventually tear at the shoulder strap, usually on a climb.',
+    max: 6,
+  },
+  {
+    id: 'spare_shelter',
+    name: 'Tent Repair Kit',
+    unit: 'each',
+    price: 46,
+    weightLb: 0.7,
+    category: 'parts',
+    icon: 'item_spare_shelter',
+    blurb: 'A splint sleeve, guyline and a roll of tape. A snapped pole in Washington is a wet week without it.',
+    max: 8,
   },
 
   // --- clothing -------------------------------------------------------------
@@ -149,17 +142,6 @@ export const ITEMS = [
   },
 
   // --- stock ----------------------------------------------------------------
-  {
-    id: 'mule',
-    name: 'Pack Mule',
-    unit: 'head',
-    price: 175,
-    weightLb: 0,
-    category: 'stock',
-    icon: 'item_mule',
-    blurb: 'Steadier than a horse and twice as opinionated. Five in the string moves the cart at a walking pace; fewer and the crew takes up the slack.',
-    max: 8,
-  },
 
   // --- tools ----------------------------------------------------------------
   {
@@ -246,7 +228,7 @@ export const ITEMS = [
 export const ITEMS_BY_ID = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
 
 /** Cart part suffixes. The purchasable spares are `spare_<part>`. */
-export const CART_PARTS = ['wheel', 'axle', 'hitch'];
+export const GEAR_PARTS = ['soles', 'poles', 'filter', 'pack', 'shelter'];
 
 /** Luxuries each give a small daily spirit bonus while owned. */
 export const LUXURIES = ITEMS.filter((i) => i.category === 'luxury').map((i) => i.id);

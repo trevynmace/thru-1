@@ -1554,10 +1554,9 @@ function bakeLandmarks() {
 
 const SPEC_ITEM_IDS = [
   'food',
-  'spare_wheel', 'spare_axle', 'spare_hitch', 'spare_soles', 'spare_poles', 'spare_filter',
+  'spare_soles', 'spare_poles', 'spare_filter', 'spare_pack', 'spare_shelter',
   'clothing', 'puffy',
   'first_aid', 'electrolytes', 'blister_kit',
-  'mule',
   'bear_can', 'ice_axe', 'stove_fuel', 'water_carry',
   'camp_chair', 'paperback', 'harmonica',
 ];
@@ -1594,39 +1593,43 @@ const ITEM_DRAWERS = {
     c.px(12, 11, P.woodDark);
   },
 
-  // --- cart wheel: rim, spokes, hub ---
-  spare_wheel: (c) => {
-    drawWheel(c, 7, 8, 7, 0.26, 8);
+  // --- spare pack: a loaded sixty-litre bag, lid, straps and a foam pad ---
+  spare_pack: (c) => {
+    // body
+    c.fillRect(4, 4, 8, 10, P.pack);
+    c.rect(4, 4, 8, 10, P.packDark);
+    // lid
+    c.fillRect(4, 2, 8, 3, mix(P.pack, P.inkDim ?? '#a99e8c', 0.18));
+    c.rect(4, 2, 8, 3, P.packDark);
+    c.px(8, 3, P.strap);
+    // shoulder straps
+    c.fillRect(2, 5, 2, 7, P.strap);
+    c.fillRect(12, 5, 2, 7, P.strap);
+    c.px(2, 12, P.packDark); c.px(13, 12, P.packDark);
+    // compression straps across the body
+    c.hline(4, 11, 8, P.strap);
+    c.hline(4, 11, 11, P.strap);
+    // a foam pad rolled under the lid
+    c.fillRect(3, 14, 10, 2, mix(P.bedroll ?? '#8fd0a4', P.night, 0.2));
+    c.hline(3, 12, 14, P.inkDim ?? '#a99e8c');
   },
 
-  // --- axle: steel rod with collars and a keyway ---
-  spare_axle: (c) => {
-    c.fillRect(1, 7, 14, 3, P.metal);
-    c.hline(1, 14, 7, P.metalLite);
-    c.hline(1, 14, 9, P.metalDark);
-    c.fillRect(2, 5, 3, 7, P.metalDark);
-    c.fillRect(11, 5, 3, 7, P.metalDark);
-    c.hline(2, 4, 5, P.metal); c.hline(11, 13, 5, P.metal);
-    c.px(7, 8, P.metalDark); c.px(8, 8, P.metalDark);
-    c.fillRect(0, 6, 1, 5, P.metalDark);
-    c.fillRect(15, 6, 1, 5, P.metalDark);
-  },
-
-  // --- hitch: a clevis with its pin and ring ---
-  spare_hitch: (c) => {
-    // U-shaped clevis
-    c.fillRect(4, 4, 3, 9, P.metal);
-    c.fillRect(11, 4, 3, 9, P.metal);
-    c.fillRect(4, 11, 10, 3, P.metal);
-    c.hline(4, 6, 4, P.metalLite); c.hline(11, 13, 4, P.metalLite);
-    c.hline(4, 13, 13, P.metalDark);
-    // pin through the jaws
-    c.fillRect(3, 6, 12, 2, P.metalDark);
-    c.fillRect(2, 5, 2, 4, P.metal);
-    c.px(2, 5, P.metalLite);
-    // tow ring
-    c.circle(9, 2, 2, P.metalDark, false);
-    c.px(8, 1, P.metalLite);
+  // --- tent repair kit: a splint sleeve, a coil of guyline and tape ---
+  spare_shelter: (c) => {
+    // pole section with the splint sleeve over it
+    c.fillRect(1, 6, 14, 2, P.metal);
+    c.hline(1, 14, 6, P.metalLite);
+    c.fillRect(5, 5, 6, 4, P.metalDark);
+    c.rect(5, 5, 6, 4, P.metal);
+    // a break line under the sleeve
+    c.px(8, 7, P.rust ?? '#d1785c');
+    // coil of guyline
+    c.circle(4, 12, 3, mix('#e8dcc0', P.night, 0.1), false);
+    c.circle(4, 12, 2, mix('#e8dcc0', P.night, 0.35), false);
+    // roll of tape
+    c.fillRect(10, 10, 5, 5, mix(P.violet ?? '#6b5a94', P.night, 0.25));
+    c.rect(10, 10, 5, 5, P.night);
+    c.fillRect(12, 12, 1, 1, P.inkDim ?? '#a99e8c');
   },
 
   // --- boot soles: a pair, tread down ---
@@ -1757,28 +1760,6 @@ const ITEM_DRAWERS = {
     c.px(4, 10, mix(P.bandage, P.ink, 0.3)); c.px(14, 12, mix(P.bandage, P.night, 0.3));
   },
 
-  // --- mule: a head in profile ---
-  mule: (c) => {
-    c.poly([[4, 15], [3, 8], [5, 5], [9, 4], [12, 7], [14, 12], [13, 15]], P.mule);
-    // muzzle
-    c.fillRect(11, 10, 4, 4, P.muleGrey);
-    c.px(14, 12, P.outline);
-    c.hline(11, 14, 13, mix(P.muleGrey, P.night, 0.35));
-    // ears, long
-    c.poly([[4, 5], [3, 0], [6, 1], [6, 5]], P.mule);
-    c.poly([[8, 4], [10, 0], [12, 2], [11, 6]], P.mule);
-    c.px(4, 2, P.muleDark); c.px(10, 2, P.muleDark);
-    // mane + jaw shadow
-    c.line(3, 8, 5, 15, P.muleDark, 2, 1);
-    c.ditherOver(3, 11, 11, 5, P.muleDark, 'b25');
-    // eye + forelock
-    c.px(9, 8, P.outline); c.px(10, 8, P.outline);
-    c.px(7, 4, P.muleDark); c.px(8, 5, P.muleDark);
-    c.px(6, 6, mix(P.mule, P.ink, 0.25));
-    // halter
-    c.line(10, 9, 12, 12, P.strap);
-    c.line(6, 12, 13, 11, P.strap);
-  },
 
   // --- bear canister ---
   bear_can: (c) => {

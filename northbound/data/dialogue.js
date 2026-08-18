@@ -79,7 +79,7 @@ export const TALK = [
   { biome: 'rainforest', kind: null, speaker: 'A man watching the north sky', line: 'First snow at Rainy Pass was September twenty-first last year. Count backwards from that and hike accordingly.' },
   { biome: 'rainforest', kind: null, speaker: 'A woman on the bus down', line: 'Take the shuttle to the bakery. I know you are in a hurry. Take the shuttle to the bakery.' },
   { biome: 'rainforest', kind: 'ford', speaker: 'A hiker lacing shoes on the bank', line: 'Grey water means you cannot see the bottom. Poles first, feet second, and never cross your legs.' },
-  { biome: 'rainforest', kind: 'town', speaker: 'The motel owner at the desk', line: 'Six of you in one room is fine. Six of you and two mules is a conversation.' },
+  { biome: 'rainforest', kind: 'town', speaker: 'The motel owner at the desk', line: 'Five of you in one room is fine. Five of you and five packs is a fire code conversation.' },
 
   // --- anywhere -------------------------------------------------------------
   { biome: null, kind: null, speaker: 'A hiker adjusting a hip belt', line: 'Weigh everything at home and then leave a third of it in the hiker box in Mount Laguna like the rest of us did.' },
@@ -119,7 +119,7 @@ export const STORE_GREETINGS = {
   campo: 'Everything you carry out that door, you carry to Canada or you throw away in Warner Springs. Choose accordingly.',
   'warner-springs': 'Bucket showers are round the back, hot dogs are two dollars, and the box shelf is alphabetical by trail name, which helps nobody.',
   idyllwild: 'If you are going up San Jacinto today, take the layer. I have had four people come back down without one and all four looked terrible.',
-  'big-bear': 'Resupply is aisle two, ice cream is by the register, and no, we cannot hold a mule in the parking lot.',
+  'big-bear': 'Resupply is aisle two, ice cream is by the register, and no, we cannot hold your packs behind the counter.',
   wrightwood: 'The hardware store will lend you tools if you ask nicely and bring them back. That is the whole system and it has worked for forty years.',
   'agua-dulce': 'Everything on the shelf came off a truck this morning. Everything in the cooler came off that same truck and is already gone.',
   tehachapi: 'Free camping in the park, half price at the motel if you say you are hiking. The town likes you. Do not make us reconsider.',

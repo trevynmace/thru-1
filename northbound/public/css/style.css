@@ -214,6 +214,15 @@ kbd {
 }
 .panel h3:first-child { margin-top: 0; }
 .panel-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+
+/* Pinned to the bottom of a scrolling panel. The store's running total and its confirm
+   button must never scroll out of reach — that is the whole point of the screen. */
+.panel-sticky {
+  position: sticky; bottom: 0; z-index: 2;
+  margin: 18px -4px -4px; padding: 12px 4px 4px;
+  background: linear-gradient(0deg, rgba(26, 21, 38, 1) 72%, rgba(26, 21, 38, 0));
+}
+.panel-sticky .panel-foot { margin-top: 10px; }
 .panel-foot .spacer { margin-right: auto; }
 
 .prose { color: var(--ink-dim); line-height: 1.8; max-width: 70ch; }
@@ -288,12 +297,18 @@ input[type=range] { width: 100%; accent-color: var(--gold-dim); }
 .item-icon.lg { width: 48px; height: 48px; }
 
 /* ------------------------------------------------------------------ HUD --- */
-.screen-hud { justify-content: space-between; padding: 0; pointer-events: none; }
+/* The trail HUD is the base layer of a run: it is a screen, but every modal panel
+   opens on top of it. Without this it shares `.screen`'s z-index and, being later in
+   the document than the store, its bars paint over the store panel and swallow clicks
+   on whatever sits under them. */
+.screen-hud { justify-content: space-between; padding: 0; pointer-events: none; z-index: 2; }
 .screen-hud > * { pointer-events: auto; }
 
 .hud-top {
   width: 100%; display: flex; justify-content: space-between; align-items: flex-start;
-  gap: 14px; padding: 12px clamp(12px, 2vw, 22px) 22px;
+  gap: 14px;
+  /* Extra right padding keeps the mile readout clear of the sound button. */
+  padding: 12px calc(clamp(12px, 2vw, 22px) + 42px) 22px clamp(12px, 2vw, 22px);
   background: linear-gradient(180deg, rgba(14, 11, 23, .86) 20%, rgba(14, 11, 23, 0));
 }
 .hud-block { display: flex; flex-direction: column; min-width: 0; }
@@ -336,10 +351,16 @@ input[type=range] { width: 100%; accent-color: var(--gold-dim); }
 @keyframes blink { 50% { opacity: .35; } }
 
 .hud-bottom {
-  width: 100%; padding: 26px clamp(12px, 2vw, 22px) clamp(12px, 2vh, 18px);
-  background: linear-gradient(0deg, rgba(14, 11, 23, .92) 46%, rgba(14, 11, 23, 0));
+  width: 100%; padding: 40px clamp(12px, 2vw, 22px) clamp(12px, 2vh, 18px);
+  /* The readout is drawn over the moving scene, so the scrim has to actually carry it. */
+  background: linear-gradient(0deg,
+    rgba(14, 11, 23, .97) 0%,
+    rgba(14, 11, 23, .95) 52%,
+    rgba(14, 11, 23, .62) 78%,
+    rgba(14, 11, 23, 0) 100%);
   display: flex; flex-direction: column; gap: 10px; align-items: center;
 }
+.hud-readout, .hud-crew { text-shadow: 0 1px 2px rgba(14, 11, 23, .95); }
 .hud-readout {
   display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px;
   font-size: .82em; color: var(--ink-dim);

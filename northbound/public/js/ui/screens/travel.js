@@ -2,6 +2,7 @@
 // landmark stops, events, camping, talking, trading, fords and foraging.
 import { el, panel, button, mountTo, kv, fmtMoney, fmtNum, plural } from '../dom.js';
 import { Audio } from '../../audio/audio.js';
+import { minigameOpts } from '../../engine/prefs.js';
 import { LANDMARKS, nextLandmark } from '../../../../data/trail.js';
 import { ITEMS_BY_ID } from '../../../../data/items.js';
 import { talkLine } from '../../../../data/dialogue.js';
@@ -52,8 +53,8 @@ export function landmark(ctx, params = {}) {
           ['Weather', `${g.weather.kind}, ${Math.round(g.weather.tempF)}°F`],
           ['Food', Math.round(g.supplies.food) + ' lb'],
           ['Money', fmtMoney(g.supplies.money)],
-          ['Mules', String(g.supplies.mules)],
-          ['Cart', Math.round(g.cart.condition) + '%'],
+          ['Pack weight', `${Math.round(g.kit.load)} lb`],
+          ['Gear', Math.round(g.kit.condition) + '%'],
           ['Crew standing', `${g.party.filter((m) => m.alive).length} of 5`],
           nl ? ['Next stop', `${nl.name} · ${Math.round(nl.mile - g.mile)} mi`] : ['Next stop', 'Canada'],
         ]),
@@ -450,7 +451,7 @@ export function ford(ctx, params = {}) {
     try {
       const { runFord } = await import('../../minigames/ford.js');
       outcome = await withWatchdog(
-        runFord(canvas, { ford: f, method, g, rng: g.rng, audio: Audio }),
+        runFord(canvas, { ford: f, method, g, rng: g.rng, audio: Audio, ...minigameOpts() }),
         75000,
         { success: true, severity: 1, log: [] },
       );
@@ -519,7 +520,7 @@ export function forage(ctx, params = {}) {
       const { runForage } = await import('../../minigames/forage.js');
       // No occupation bonus here — applyForageResult() applies the forage perk itself.
       out = await withWatchdog(
-        runForage(canvas, { quality, biome: params.biome || 'forest', rng: g.rng, audio: Audio, bonus: 1 }),
+        runForage(canvas, { quality, biome: params.biome || 'forest', rng: g.rng, audio: Audio, bonus: 1, ...minigameOpts() }),
         90000,
         { lbs: 18, log: [] },
       );
