@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Northbound — sprite contact sheet</title>
+<style>
+  body{margin:0;background:#0e0b17;color:#a99e8c;font:11px ui-monospace,monospace;padding:16px}
+  h2{color:#f2c98a;font-size:12px;letter-spacing:.2em;text-transform:uppercase;margin:20px 0 8px;
+     border-bottom:1px solid #4b3f66;padding-bottom:4px}
+  .grid{display:flex;flex-wrap:wrap;gap:10px}
+  .cell{background:#1a1526;border:1px solid #342b4b;padding:5px;text-align:center;min-width:60px}
+  .cell canvas{image-rendering:pixelated;display:block;margin:0 auto 4px}
+  .cell span{color:#6f6656;font-size:9px;word-break:break-all}
+</style>
+<body>
+<script type="module">
+// Renders every atlas frame at 3x with its name, grouped by prefix.
+import { loadAtlas, frame, draw, frameNames } from '/js/render/atlas.js';
+
+await loadAtlas();
+const names = frameNames().sort();
+const groups = new Map();
+for (const n of names) {
+  const key = n.startsWith('font_') ? 'font' : n.split('_')[0];
+  if (!groups.has(key)) groups.set(key, []);
+  groups.get(key).push(n);
+}
+
+for (const [key, list] of [...groups].sort((a, b) => a[0].localeCompare(b[0]))) {
+  const h = document.createElement('h2');
+  h.textContent = `${key}  (${list.length})`;
+  document.body.appendChild(h);
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  for (const name of list) {
+    const f = frame(name);
+    const scale = f.w > 40 ? 2 : f.w < 10 ? 5 : 3;
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const c = document.createElement('canvas');
+    c.width = f.w * scale; c.height = f.h * scale;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.scale(scale, scale);
+    try { draw(ctx, name, 0, 0); } catch {}
+    const label = document.createElement('span');
+    label.textContent = name.replace(/^font_/, '');
+    cell.append(c, label);
+    grid.appendChild(cell);
+  }
+  document.body.appendChild(grid);
+}
+window.SHEET_READY = true;
+</script>

@@ -1,0 +1,32 @@
+{
+  "name": "northbound",
+  "version": "1.0.0",
+  "description": "NORTHBOUND — an Oregon Trail clone set on the Pacific Crest Trail. Lead a five-hiker crew, a gear cart and a string of mules 2,650 miles to Canada before the snow closes the passes.",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "electron": "electron .",
+    "dist": "electron-builder",
+    "bake": "node scripts/bake-assets.mjs",
+    "playtest": "node scripts/playtest.mjs",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": ["oregon-trail", "pct", "thru-hiking", "pixel-art", "game", "canvas", "webaudio"],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "playwright": "^1.45.0"
+  },
+  "build": {
+    "appId": "com.northbound.game",
+    "productName": "Northbound",
+    "files": ["electron/**", "public/**", "data/**", "server.js"],
+    "directories": { "output": "dist" }
+  }
+}

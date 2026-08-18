@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Northbound — scene harness</title>
+<style>
+  html,body{margin:0;height:100%;background:#0e0b17;overflow:hidden}
+  canvas{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block}
+</style>
+<canvas id="c"></canvas>
+<script type="module">
+// A bare harness for scripts/shots.mjs: mounts the real scene with synthetic state so
+// every biome / time of day / weather combination can be screenshotted.
+import { loadAtlas, BASE_W, BASE_H } from '/js/render/atlas.js';
+import { createScene } from '/js/render/scene.js';
+
+const canvas = document.getElementById('c');
+canvas.width = BASE_W; canvas.height = BASE_H;
+
+const party = [
+  { alive: true, health: 92, ailments: [], portrait: { skin: '#c98d63', hair: '#2b2233', shirt: '#8fd0a4' } },
+  { alive: true, health: 78, ailments: [], portrait: { skin: '#8d5a3b', hair: '#4a3320', shirt: '#d1785c' } },
+  { alive: true, health: 44, ailments: [{ id: 'giardia', daysLeft: 3 }], portrait: { skin: '#e8c39a', hair: '#7a5a2a', shirt: '#bfe3ff' } },
+  { alive: true, health: 88, ailments: [], portrait: { skin: '#6b452c', hair: '#1c1620', shirt: '#f2c98a' } },
+  { alive: false, health: 0, ailments: [], portrait: { skin: '#c98d63', hair: '#2b2233', shirt: '#6b5a94' } },
+];
+
+const state = {
+  biome: 'desert', mile: 412, scroll: 0, walking: true, dayPhase: 0.5,
+  weather: { kind: 'clear', severity: 0.5, tempF: 70 },
+  party, mules: 4, cartCondition: 82, landmark: null, elevation: 5200,
+  night: false, camped: false,
+};
+
+window.setScene = (patch) => {
+  if (patch.weather) state.weather = { kind: patch.weather, severity: 0.7, tempF: 60 };
+  if (patch.biome) state.biome = patch.biome;
+  if (patch.dayPhase !== undefined) { state.dayPhase = patch.dayPhase; state.night = patch.dayPhase > 0.9; }
+  if (patch.mile !== undefined) state.mile = patch.mile;
+  if (patch.camped !== undefined) state.camped = patch.camped;
+  if (patch.elevation !== undefined) state.elevation = patch.elevation;
+};
+
+const ELEV = { desert: 3200, chaparral: 4200, sierra: 9800, alpine: 11800, forest: 5200, volcanic: 6400, rainforest: 3400 };
+const MILE = { desert: 120, chaparral: 300, sierra: 820, alpine: 1010, forest: 1500, volcanic: 1900, rainforest: 2400 };
+
+await loadAtlas();
+const scene = createScene(canvas);
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  state.scroll += dt * 34;
+  state.elevation = ELEV[state.biome] ?? 5000;
+  state.mile = MILE[state.biome] ?? 400;
+  scene.render(state, dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.SCENE_READY = true;
+</script>

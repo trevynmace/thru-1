@@ -1,0 +1,6 @@
+node_modules/
+dist/
+saves/*.json
+
+# visual QA output is a dev artifact, not a deliverable
+docs/visual/
