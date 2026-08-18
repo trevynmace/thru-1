@@ -4,7 +4,7 @@
 
 ### *The Oregon Trail, walked instead of driven*
 
-**Five hikers. One gear cart. A string of mules. 2,650 miles to Canada, and the snow is already thinking about the passes.**
+**Five hikers. Everything they own on their backs. 2,650 miles to Canada, and the snow is already thinking about the passes.**
 
 [![runtime](https://img.shields.io/badge/runtime-Node%2022+-3a7163?style=for-the-badge&logo=node.js&logoColor=white)](#-running-it)
 [![desktop](https://img.shields.io/badge/desktop-Electron-2a2f55?style=for-the-badge&logo=electron&logoColor=white)](#-desktop)
@@ -33,8 +33,9 @@ snow line closing in behind you — and rebuilds it as a **faithful Oregon Trail
 | The Oregon Trail | Northbound |
 |---|---|
 | Pick a banker / carpenter / farmer | Pick a trail angel, gear rep, ranger, camp cook or dirtbag |
-| Buy oxen, food, spare parts at Matt's | Buy mules, food and spares at the Southern Terminus outfitter |
-| Wagon axle / wheel / tongue breaks | Cart axle / wheel / hitch breaks — plus soles, poles and filters |
+| Buy oxen, food, spare parts at Matt's | Buy food, layers and spares at the Southern Terminus outfitter |
+| Wagon axle / wheel / tongue breaks | Shoes, poles, filter, pack and shelter break |
+| More oxen pull the wagon faster | A lighter pack walks faster — pack weight is the whole trade |
 | Steady, strenuous, grueling pace | Same three, and grueling is still a trap |
 | Filling / meager / bare-bones rations | Same three, still 3 / 2 / 1 lb per person per day |
 | Ford, caulk, ferry or wait at the river | Wade, rock-hop, pack-raft, pay a shuttle, or camp and cross at dawn |
@@ -79,12 +80,12 @@ thirteen steps, in the same order, every time:
   │
   ├─  1. The calendar turns over
   ├─  2. Weather rolls or decays          clear · hot · rain · storm · hail · snow · smoke · fog · wind
-  ├─  3. Miles = pace × terrain × mules × health × weather × cart
+  ├─  3. Miles = pace × terrain × pack weight × health × weather × gear condition
   ├─  4. Everybody eats                   3 / 2 / 1 lb each, by ration setting
   ├─  5. Health ticks                     pace, rations, cold, altitude, illness, overloading
   ├─  6. Ailments progress                onset · worsen · recover · die
   ├─  7. Spirit drifts                    landmarks lift it, grueling days and funerals sink it
-  ├─  8. The cart wears                   a bad roll snaps a part; a spare costs nothing, no spare costs days
+  ├─  8. The kit wears                    a bad roll snaps something; a spare costs nothing, no spare costs days
   ├─  9. THE SNOW LINE ADVANCES           south, faster every week after Labor Day
   ├─ 10. Arrival?                         a landmark stops the day and opens its menu
   ├─ 11. Event?                           ~28% — marmots, wildfire closures, trail magic, a lost resupply box
@@ -101,18 +102,34 @@ same date. So leaving early buys weeks of slack. What it costs is the other cale
 **Sierra snowpack**, which is still sitting on the high country until mid-June. Arrive
 before it melts out and the passes are postholing, whiteouts and creeks at peak melt.
 
-That makes the departure month a real decision instead of a ladder. Measured over 400 seeds
-per policy with a competent player:
+That makes the departure month a real decision instead of a ladder. `scripts/balance.mjs`
+plays the real simulation a few hundred times per row and prints this:
 
-| Departure | Pace | Win rate | Usually lost to |
-|---|---|---|---|
-| March | strenuous | **51%** | the Sierra buries you |
-| April | strenuous | **81%** | mixed |
-| May | strenuous | **55%** | the snow line catches you |
-| May | grueling | **34%** | grueling costs more health than it buys |
-| June | strenuous | **2%** | snowed off, almost always |
+| Departure | Win rate | Usually lost to |
+|---|---|---|
+| March | **79%** | the Sierra buries you |
+| April | **92%** | mixed |
+| May | **39%** | the snow line catches you |
+| June | **0%** | snowed off, always |
 
-Grueling being *worse* than strenuous is deliberate, and it is asserted by a test.
+Grueling being *worse* than strenuous is deliberate, and it is asserted by a test. So is the
+shape of that table: the harness exits non-zero if the best month climbs above 96%, if the
+spread between the best and worst month narrows below 40 points, or if a reckless crew starts
+finishing more than a third of the time.
+
+### Weight is the whole trade
+
+There are no oxen on the Pacific Crest Trail, and there is no wagon. Everything the crew owns
+rides on somebody's back, so the lever The Oregon Trail puts on livestock sits here on **pack
+weight**. Capacity is 12 lb plus 34 lb for every hiker still walking — 182 lb for a full crew
+of five, and it *shrinks when somebody dies*, which is the cruellest arithmetic in the game.
+
+Under about half of capacity the crew moves better than baseline. Past capacity the hip belts
+are cinched to nothing and the miles show it. Since food is a pound a day per person, the
+carry is the entire planning problem: buy five or six days and resupply in town, or haul two
+weeks up a climb and walk it at a crawl. Between Kennedy Meadows and Tuolumne there are 240
+miles and no store, and no pack in the game is big enough for that — which is what foraging
+is for.
 
 <img src="docs/screenshots/trail.png" width="860" alt="The trail HUD" />
 
@@ -125,7 +142,7 @@ Mount Laguna, Deep Creek, Cajon Pass, Hikertown, Kennedy Meadows, Forester Pass,
 Sonora Pass, Sierra City, the Midpoint Monument, Burney Falls, Seiad Valley, Crater Lake,
 Timberline Lodge, Cascade Locks, Snoqualmie, Stehekin, and the monument on the border.
 
-Nineteen of them will sell you food. Six of them are river crossings that can drown a mule.
+Nineteen of them will sell you food. Six of them are river crossings that can take a pack off your back.
 
 <img src="docs/screenshots/map.png" width="860" alt="The trail map with elevation profile and the snow line" />
 
@@ -137,8 +154,7 @@ Every pixel in this game was drawn **by code, into PNG files, by a script in thi
 `scripts/bake-assets.mjs` has no dependencies — it encodes PNGs by hand with Node's `zlib` — and
 emits the sprite atlas plus `atlas.json`:
 
-- six-frame walk cycles for the crew, the leader and the mules
-- a four-frame rolling gear cart
+- six-frame walk cycles for the crew, the leader, and a packer's mule string that passes going south
 - landmark silhouettes, biome props, weather sprites, item icons, a 5×7 bitmap font, a nine-slice UI frame
 - forage and ford minigame sprites
 

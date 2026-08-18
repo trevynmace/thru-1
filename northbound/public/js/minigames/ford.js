@@ -250,10 +250,11 @@ function createState(ford, method, rng, o) {
   let bonus = 0;
   if (Number.isFinite(o.bonus)) bonus = o.bonus;
   else if (o.g && o.g.perks && Number.isFinite(o.g.perks.fordBonus)) bonus = o.g.perks.fordBonus;
-  let crew = 5, mules = 3;
+  // Everyone in the water is a person carrying their own pack. Nothing on this trail
+  // is led across a river on a rope.
+  let crew = 5;
   try {
     if (o.g && Array.isArray(o.g.party)) crew = clamp(o.g.party.filter((p) => p && p.alive !== false).length, 1, 6);
-    if (o.g && o.g.supplies && Number.isFinite(o.g.supplies.mules)) mules = clamp(o.g.supplies.mules | 0, 0, 5);
   } catch { /* defaults */ }
 
   // channel width and crossing time scale with the ford's numbers
@@ -261,7 +262,7 @@ function createState(ford, method, rng, o) {
   const duration = clamp(6 + widthFt / 12, 7, 15);
 
   return {
-    ford, method, rng, flow, depthFt, widthFt, biome, bonus, crew, mules,
+    ford, method, rng, flow, depthFt, widthFt, biome, bonus, crew,
     pal: SKY_PAL[biome] || SKY_PAL.sierra,
     audio: o.audio || null,
     autoplay: !!o.autoplay,
@@ -895,13 +896,11 @@ function renderWade(g, S, D, L) {
   g.beginPath();
   g.rect(0, 0, BASE_W, CREW_Y + 1);
   g.clip();
-  const n = S.crew + (S.mules > 0 ? 1 : 0);
+  const n = S.crew;
   for (let i = 0; i < n; i++) {
-    const isMule = S.mules > 0 && i === n - 1;
     const x = Math.round(S.crewX + (i - (n - 1) / 2) * 9 + wob);
     const bob = Math.sin(S.t * 4 + i) * 0.8;
-    if (isMule) drawMule(g, D, x, CREW_Y + sink + bob, S.t);
-    else drawWader(g, D, x, CREW_Y + sink + bob, i, S.t, S);
+    drawWader(g, D, x, CREW_Y + sink + bob, i, S.t, S);
   }
   g.restore();
   // waterline ripples around each figure
@@ -962,22 +961,6 @@ function drawWader(g, D, x, yFeet, i, t, S) {
   g.fillStyle = INK_DIM;
   const px = x + 4 + Math.round(sway);
   g.fillRect(px, y - 13, 1, 14);
-}
-
-function drawMule(g, D, x, yFeet, t) {
-  const y = Math.round(yFeet);
-  if (spr(g, D, `mule_walk_${Math.floor(t * 6) % 6}`, x, y, {}, 12)) return;
-  const c = '#241c2c';
-  g.fillStyle = c;
-  g.fillRect(x - 7, y - 9, 14, 5);
-  g.fillRect(x - 6, y - 4, 2, 4);
-  g.fillRect(x + 4, y - 4, 2, 4);
-  g.fillRect(x + 5, y - 13, 4, 5);
-  g.fillRect(x + 8, y - 11, 3, 2);
-  g.fillRect(x + 5, y - 15, 1, 2);
-  g.fillRect(x + 7, y - 15, 1, 2);
-  g.fillStyle = GOLD_DIM;
-  g.fillRect(x - 5, y - 12, 8, 3);            // panniers
 }
 
 // --- rock hop ----------------------------------------------------------
