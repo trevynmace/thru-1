@@ -232,6 +232,10 @@ export function rollEvent(g, rng)        // weighted pick honouring filters; ret
 plus `ailment: 'giardia'` (applies to a random living member), `kill: true` (a random
 member dies), `partHealth: -10`, `kitCondition: -15`, `weather: 'snow'`.
 
+Events roll once a day at `BALANCE.eventChance`, but never inside
+`BALANCE.eventQuietDays` of the last interruption — an arrival, a ford, a rest day or a
+previous card. Any day spent not walking pushes that stretch along with the calendar.
+
 Minimum **60** events, spread across biomes, with the Oregon Trail canon reskinned:
 theft, lost trail, bad water, blown pack strap, wildfire closure, trail magic,
 snowstorm, hail, heat wave, hitchhiker, lost member, rattlesnake, bear canister failure,

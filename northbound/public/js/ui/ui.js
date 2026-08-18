@@ -127,6 +127,11 @@ export async function init() {
   };
 }
 
+// How long one day on the trail takes to walk. This is the game's heartbeat: the
+// scene, the weather and the journal all read at this speed, and it is the only thing
+// standing between "a season on the Pacific Crest Trail" and a ticker tape.
+const DAY_SECONDS = 1.15;
+
 // ------------------------------------------------------------ rendering ----
 
 function frame(now) {
@@ -303,7 +308,7 @@ export function setTravelling(on) {
   state.walking = state.travelling;
   if (state.travelling) {
     state.camped = false;
-    state.travelTimer = 0.15;
+    state.travelTimer = 0.18;
     Audio.sfx('footstep', { vol: 0.5 });
   }
   refreshHud();
@@ -329,7 +334,7 @@ function stepTravel() {
     return;
   }
 
-  state.travelTimer = 0.62;
+  state.travelTimer = DAY_SECONDS;
   reportToJournal(report);
   refreshHud();
   emitWeatherFx(g);

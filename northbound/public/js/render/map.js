@@ -37,9 +37,17 @@ const MAX_ELEV = 13500;
 let pins = [];
 let lastLayout = null;
 
+// The map is composed at this width and then scaled to whatever canvas it is given, so
+// a bigger window means a physically bigger map rather than a blown-up small one: the
+// labels, pins and hairlines all keep their proportions and stay crisp.
+const LOGICAL_W = 1280;
+
 export function drawMap(ctx, g, opts = {}) {
-  const W = opts.width || ctx.canvas.width;
-  const H = opts.height || ctx.canvas.height;
+  const deviceW = opts.width || ctx.canvas.width;
+  const deviceH = opts.height || ctx.canvas.height;
+  const scale = deviceW / LOGICAL_W;
+  const W = LOGICAL_W;
+  const H = deviceH / scale;
   const selected = opts.selected || null;
 
   const padL = 26, padR = 26, padT = 26, padB = 44;
@@ -50,10 +58,11 @@ export function drawMap(ctx, g, opts = {}) {
   const xOf = (mile) => padL + (mile / TOTAL_MILES) * plotW;
   const yOf = (elev) => baseY - Math.max(0, Math.min(1, elev / MAX_ELEV)) * plotH;
 
-  lastLayout = { W, H, padL, padR, padT, padB, plotW, plotH, baseY, xOf, yOf };
+  lastLayout = { W, H, padL, padR, padT, padB, plotW, plotH, baseY, xOf, yOf, scale };
   pins = [];
 
   ctx.save();
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.imageSmoothingEnabled = false;
   ctx.textBaseline = 'alphabetic';
 
@@ -186,7 +195,9 @@ export function drawMap(ctx, g, opts = {}) {
       ctx.font = isSel ? 'bold 9px ui-monospace, monospace' : '8px ui-monospace, monospace';
       ctx.fillStyle = isSel ? C.gold : (behind ? C.dim : C.faint);
       ctx.textAlign = x > W - 110 ? 'right' : x < 90 ? 'left' : 'center';
-      const label = shorten(lm.name, isSel ? 40 : 16);
+      // The sixteen-character cap dates from when this map was 640 px wide. It is not
+      // any more, and "Southern Termin…" on a map with room to spare is just rude.
+      const label = shorten(lm.name, isSel ? 40 : 22);
       ctx.fillText(label, x, y - 12);
     }
   }
@@ -230,7 +241,12 @@ export function drawMap(ctx, g, opts = {}) {
 }
 
 /** Which landmark pin is under this canvas-space point, if any. */
-export function hitTestLandmark(x, y) {
+export function hitTestLandmark(deviceX, deviceY) {
+  // Pins live in the map's own composition space, so a pointer position measured in
+  // canvas pixels has to come back through the same scale the map was drawn at.
+  const s = (lastLayout && lastLayout.scale) || 1;
+  const x = deviceX / s;
+  const y = deviceY / s;
   let best = null;
   let bestD = Infinity;
   for (const p of pins) {

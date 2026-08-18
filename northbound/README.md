@@ -107,15 +107,25 @@ plays the real simulation a few hundred times per row and prints this:
 
 | Departure | Win rate | Usually lost to |
 |---|---|---|
-| March | **79%** | the Sierra buries you |
-| April | **92%** | mixed |
-| May | **39%** | the snow line catches you |
+| March | **80%** | the Sierra buries you |
+| April | **93%** | mixed |
+| May | **43%** | the snow line catches you |
 | June | **0%** | snowed off, always |
 
 Grueling being *worse* than strenuous is deliberate, and it is asserted by a test. So is the
 shape of that table: the harness exits non-zero if the best month climbs above 96%, if the
 spread between the best and worst month narrows below 40 points, or if a reckless crew starts
 finishing more than a third of the time.
+
+### The trail owes you a quiet stretch
+
+Events roll once a day, but they cannot fire inside the days owed by the last
+interruption — and a town, a river, a rest day and a card all count. Without that floor
+a per-day roll bunches, and the trail becomes walk-two-days-read-a-card until neither
+the walking nor the cards land. With it, something stops you every four days or so, and
+the stretch in between is long enough to watch the country change. Two tests pin it: one
+that no event lands inside the quiet stretch, one that the overall cadence stays between
+two and a half and seven days.
 
 ### Weight is the whole trade
 
